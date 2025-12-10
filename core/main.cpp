@@ -5,23 +5,20 @@
 #include <iostream>
 #include <vector>
 
+#include "bruteforce_index.h"
 #include "search.h"
 
 int main() {
-    std::vector<std::vector<double>> vectors = {
-        {0.1, 0.2, 0.3},
-        {0.9, 0.8, 0.7},
-        {0.4, 0.4, 0.5}
-    };
+    BruteForceIndex index(3);
 
-    std::vector<double> query = {0.1, 0.2, 0.3};
+    index.add_vector(1, {1.0f, 2.0f, 3.0f});
+    index.add_vector(2, {0.0f, 1.0f, 1.0f});
+    index.add_vector(3, {5.0f, 5.0f, 5.0f});
 
-    int k = 2;
+    auto results = index.search({0.0f, 0.0f, 0.0f}, 2);
 
-    auto results = brute_force_search(vectors, query, k);
-
-    for (auto& result : results) {
-        std::cout << "Index: " << result.first << ", Similarity: " << result.second << std::endl;
+    for (const auto& result : results) {
+        std::cout << "ID: " << result.first << ", Distance: " << result.second << std::endl;
     }
 
     return 0;
