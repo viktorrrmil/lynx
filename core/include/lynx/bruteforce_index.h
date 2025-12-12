@@ -4,10 +4,13 @@
 
 #ifndef LYNX_BRUTEFORCE_INDEX_H
 #define LYNX_BRUTEFORCE_INDEX_H
+#include <string>
 #include <unordered_set>
 #include <vector>
 
-class BruteForceIndex {
+#include "vector_index.h"
+
+class BruteForceIndex : public VectorIndex {
 public:
     explicit BruteForceIndex(long dimension);
 
@@ -17,6 +20,9 @@ public:
     search(const std::vector<float>& query, long k) const;
 
     std::size_t size() const;
+
+    bool save(const std::string& path) const;
+    bool load(const std::string& path);
 
 private:
     long dimension_;

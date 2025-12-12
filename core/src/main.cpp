@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "bruteforce_index.h"
+#include "../include/lynx/bruteforce_index.h"
 #include "search.h"
 
 int main() {

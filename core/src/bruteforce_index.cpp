@@ -2,7 +2,7 @@
 // Created by viktor on 12/9/25.
 //
 
-#include "bruteforce_index.h"
+#include "../include/lynx/bruteforce_index.h"
 
 #include <algorithm>
 #include <cmath>
