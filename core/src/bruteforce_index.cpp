@@ -6,6 +6,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+
+#include "../include/lynx/serialization.h"
 
 BruteForceIndex::BruteForceIndex(long dimension)
     : dimension_(dimension)
@@ -86,4 +89,106 @@ float BruteForceIndex::l2_distance(const std::vector<float>& vector_a, const std
     }
 
     return std::sqrt(sum);
+}
+
+bool BruteForceIndex::save(const std::string& path) const {
+    std::ofstream out(path, std::ios::binary);
+    if (!out.is_open()) {
+        return false;
+    }
+
+    // Magic
+    if (!write_magic(out)) {
+        return false;
+    }
+
+    // Version
+    if (!write_int64(out, VERSION)) {
+        return false;
+    }
+
+    // Dimension
+    if (!write_int64(out, dimension_)) {
+        return false;
+    }
+
+    // Vector count
+    if (!write_int64(out, static_cast<int64_t>(vectors_.size()))) {
+        return false;
+    }
+
+    for (size_t i = 0; i < ids_.size(); i++) {
+        if (!write_int64(out, ids_[i])) {
+            return false;
+        }
+
+        if (!write_float_vector(out, vectors_[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool BruteForceIndex::load(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in.is_open()) {
+        return false;
+    }
+
+    if (!read_magic(in)) {
+        return false;
+    }
+
+    int64_t version;
+    if (!read_int64(in, version)) {
+        return false;
+    }
+    if (version != VERSION) {
+        return false;
+    }
+
+    int64_t dimension;
+    if (!read_int64(in, dimension)) {
+        return false;
+    }
+    if (dimension <= 0) {
+        return false;
+    }
+
+    dimension_ = dimension;
+
+    int64_t vector_count;
+    if (!read_int64(in, vector_count)) {
+        return false;
+    }
+    if (vector_count < 0) {
+        return false;
+    }
+
+    vectors_.clear();
+    ids_.clear();
+    id_set_.clear();
+
+    for (int64_t i = 0; i < vector_count; i++) {
+        long id;
+        if (!read_int64(in, id)) {
+            return false;
+        }
+
+        if (id_set_.count(id)) {
+            return false;
+        }
+
+        std::vector<float> vector_data;
+        if (!read_float_vector(in, vector_data, dimension_)) {
+            return false;
+        }
+
+        ids_.push_back(id);
+        vectors_.push_back(vector_data);
+        id_set_.insert(id);
+    }
+
+    return true;
 }
