@@ -7,31 +7,31 @@
 
 #include "../include/lynx/bruteforce_index.h"
 #include "search.h"
+#include "../include/lynx/index_loader.h"
+#include "../include/lynx/index_registry.h"
 
 int main() {
-    BruteForceIndex index(3);
+    IndexRegistry::register_index(
+        IndexType::BRUTEFORCE,
+        []() { return std::make_unique<BruteForceIndex>(); }
+    );
 
-    index.add_vector(1, {1.0f, 2.0f, 3.0f});
-    index.add_vector(2, {0.0f, 1.0f, 1.0f});
-    index.add_vector(3, {5.0f, 5.0f, 5.0f});
+    BruteForceIndex builder(3);
+    builder.add_vector(1, {1.0f, 2.0f, 3.0f});
+    builder.add_vector(2, {0.0f, 1.0f, 1.0f});
+    builder.add_vector(3, {5.0f, 5.0f, 5.0f});
 
-    if (!index.save("test.lynx")) {
-        std::cout << "Failed to save file!" << std::endl;
+    builder.save("test.lynx");
+
+    auto index = IndexLoader::load("test.lynx");
+    if (!index) {
+        std::cerr << "Failed to load index\n";
+        return 1;
     }
 
-    auto results = index.search({0.0f, 0.0f, 0.0f}, 2);
-
-    for (const auto& result : results) {
-        std::cout << "ID: " << result.first << ", Distance: " << result.second << std::endl;
-    }
-
-    BruteForceIndex loaded(3);
-    loaded.load("test.lynx");
-
-    auto results2 = loaded.search({0.0f, 0.0f, 0.0f}, 2);
-
-    for (const auto& result : results2) {
-        std::cout << "Loaded ID: " << result.first << ", Distance: " << result.second << std::endl;
+    auto results = index->search({0.0f, 0.0f, 0.0f}, 2);
+    for (const auto& r : results) {
+        std::cout << "ID: " << r.first << ", Distance: " << r.second << "\n";
     }
 
     return 0;

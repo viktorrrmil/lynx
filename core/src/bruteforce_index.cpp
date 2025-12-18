@@ -107,6 +107,11 @@ bool BruteForceIndex::save(const std::string& path) const {
         return false;
     }
 
+    // Index type
+    if (!write_int64(out, static_cast<int64_t>(type()))) {
+        return false;
+    }
+
     // Dimension
     if (!write_int64(out, dimension_)) {
         return false;
@@ -130,34 +135,7 @@ bool BruteForceIndex::save(const std::string& path) const {
     return true;
 }
 
-bool BruteForceIndex::load(const std::string& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in.is_open()) {
-        return false;
-    }
-
-    if (!read_magic(in)) {
-        return false;
-    }
-
-    int64_t version;
-    if (!read_int64(in, version)) {
-        return false;
-    }
-    if (version != VERSION) {
-        return false;
-    }
-
-    int64_t dimension;
-    if (!read_int64(in, dimension)) {
-        return false;
-    }
-    if (dimension <= 0) {
-        return false;
-    }
-
-    dimension_ = dimension;
-
+bool BruteForceIndex::load(std::ifstream &in) {
     int64_t vector_count;
     if (!read_int64(in, vector_count)) {
         return false;
@@ -191,4 +169,8 @@ bool BruteForceIndex::load(const std::string& path) {
     }
 
     return true;
+}
+
+IndexType BruteForceIndex::type() const {
+    return IndexType::BRUTEFORCE;
 }

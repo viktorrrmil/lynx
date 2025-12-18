@@ -12,7 +12,12 @@
 
 class BruteForceIndex : public VectorIndex {
 public:
+    BruteForceIndex() : dimension_(0) {}
     explicit BruteForceIndex(long dimension);
+
+    void set_dimension(int64_t dimension) override {
+        dimension_ = dimension;
+    }
 
     bool add_vector(long id, const std::vector<float>& vector_data);
 
@@ -22,7 +27,9 @@ public:
     std::size_t size() const;
 
     bool save(const std::string& path) const;
-    bool load(const std::string& path);
+    bool load(std::ifstream &in);
+
+    IndexType type() const;
 
 private:
     long dimension_;
