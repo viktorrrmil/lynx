@@ -12,11 +12,19 @@
 
 class BruteForceIndex : public VectorIndex {
 public:
-    BruteForceIndex() : dimension_(0) {}
-    explicit BruteForceIndex(long dimension);
+    BruteForceIndex() : metric_(DistanceMetric::L2), dimension_(0) {}
+    explicit BruteForceIndex(long dimension, DistanceMetric metric);
 
     void set_dimension(int64_t dimension) override {
         dimension_ = dimension;
+    }
+
+    void set_metric(DistanceMetric metric) override {
+        metric_ = metric;
+    }
+
+    DistanceMetric metric() const override {
+        return metric_;
     }
 
     bool add_vector(long id, const std::vector<float>& vector_data);
@@ -32,12 +40,11 @@ public:
     IndexType type() const;
 
 private:
+    DistanceMetric metric_;
     long dimension_;
     std::vector<std::vector<float>> vectors_;
     std::vector<long> ids_;
     std::unordered_set<long> id_set_;
-
-    float l2_distance(const std::vector<float>& vector_a, const std::vector<float>& vector_b) const;
 };
 
 #endif //LYNX_BRUTEFORCE_INDEX_H

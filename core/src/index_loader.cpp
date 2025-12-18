@@ -29,6 +29,15 @@ namespace IndexLoader {
         if (!read_int64(in, reinterpret_cast<int64_t&>(type))) {
             return nullptr;
         }
+
+        DistanceMetric metric;
+        if (!read_int64(in, reinterpret_cast<int64_t&>(metric))) {
+            return nullptr;
+        }
+        if (metric != DistanceMetric::L2 && metric != DistanceMetric::COSINE) {
+            return nullptr;
+        }
+
         int64_t dimension;
         if (!read_int64(in, dimension)) {
             return nullptr;
@@ -40,6 +49,8 @@ namespace IndexLoader {
         if (!index) {
             return nullptr;
         }
+
+        index->set_metric(metric);
         index->set_dimension(dimension);
         index->load(in);
 

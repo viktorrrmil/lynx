@@ -10,8 +10,8 @@
 
 #include "../include/lynx/serialization.h"
 
-BruteForceIndex::BruteForceIndex(long dimension)
-    : dimension_(dimension)
+BruteForceIndex::BruteForceIndex(long dimension, DistanceMetric metric)
+    : metric_(metric), dimension_(dimension)
 {
     vectors_.reserve(1024);
     ids_.reserve(1024);
@@ -47,7 +47,7 @@ BruteForceIndex::search(const std::vector<float>& query, long k) const {
 
     for (size_t i = 0; i < vectors_.size(); i++) {
         const std::vector<float>& stored_vector = vectors_[i];
-        float distance = l2_distance(query, stored_vector);
+        float distance = compute_distance(metric_, query, stored_vector);
 
         temporary_results.emplace_back(ids_[i], distance);
     }
@@ -80,17 +80,6 @@ size_t BruteForceIndex::size() const {
     return vectors_.size();
 }
 
-float BruteForceIndex::l2_distance(const std::vector<float>& vector_a, const std::vector<float>& vector_b) const {
-    float sum = 0.0;
-
-    for (size_t i = 0; i < vector_a.size(); i++) {
-        float diff = vector_a[i] - vector_b[i];
-        sum += diff * diff;
-    }
-
-    return std::sqrt(sum);
-}
-
 bool BruteForceIndex::save(const std::string& path) const {
     std::ofstream out(path, std::ios::binary);
     if (!out.is_open()) {
@@ -109,6 +98,11 @@ bool BruteForceIndex::save(const std::string& path) const {
 
     // Index type
     if (!write_int64(out, static_cast<int64_t>(type()))) {
+        return false;
+    }
+
+    // Metric
+    if (!write_int64(out, static_cast<int64_t>(metric_))) {
         return false;
     }
 
@@ -136,6 +130,10 @@ bool BruteForceIndex::save(const std::string& path) const {
 }
 
 bool BruteForceIndex::load(std::ifstream &in) {
+    if (dimension_ <= 0) {
+        return false;
+    }
+
     int64_t vector_count;
     if (!read_int64(in, vector_count)) {
         return false;

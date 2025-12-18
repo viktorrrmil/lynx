@@ -16,7 +16,7 @@ int main() {
         []() { return std::make_unique<BruteForceIndex>(); }
     );
 
-    BruteForceIndex builder(3);
+    BruteForceIndex builder(3, DistanceMetric::L2);
     builder.add_vector(1, {1.0f, 2.0f, 3.0f});
     builder.add_vector(2, {0.0f, 1.0f, 1.0f});
     builder.add_vector(3, {5.0f, 5.0f, 5.0f});

@@ -7,6 +7,8 @@
 #include <vector>
 #include <cstddef>
 
+#include "utils/metric.h"
+
 enum class IndexType : int64_t {
     BRUTEFORCE = 1,
     IVF = 2,
@@ -26,6 +28,9 @@ namespace std {
 class VectorIndex {
 public:
     virtual ~VectorIndex() = default;
+
+    virtual DistanceMetric metric() const = 0;
+    virtual void set_metric(DistanceMetric metric) = 0;
 
     virtual void set_dimension(int64_t dimension) = 0;
 
