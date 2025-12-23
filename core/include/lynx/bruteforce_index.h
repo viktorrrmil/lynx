@@ -27,17 +27,17 @@ public:
         return metric_;
     }
 
-    bool add_vector(long id, const std::vector<float>& vector_data);
+    bool add_vector(long id, const std::vector<float>& vector_data) override;
 
     std::vector<std::pair<long, float>>
-    search(const std::vector<float>& query, long k) const;
+    search(const std::vector<float>& query, long k) const override;
 
-    std::size_t size() const;
+    std::size_t size() const override;
 
-    bool save(const std::string& path) const;
-    bool load(std::ifstream &in);
+    bool save(const std::string& path) const override;
+    bool load(std::ifstream &in) override;
 
-    IndexType type() const;
+    IndexType type() const override;
 
 private:
     DistanceMetric metric_;

@@ -147,12 +147,12 @@ bool BruteForceIndex::load(std::ifstream &in) {
     id_set_.clear();
 
     for (int64_t i = 0; i < vector_count; i++) {
-        long id;
-        if (!read_int64(in, id)) {
+        int64_t temp_id;
+        if (!read_int64(in, temp_id)) {
             return false;
         }
 
-        if (id_set_.count(id)) {
+        if (id_set_.count(temp_id)) {
             return false;
         }
 
@@ -160,6 +160,8 @@ bool BruteForceIndex::load(std::ifstream &in) {
         if (!read_float_vector(in, vector_data, dimension_)) {
             return false;
         }
+
+        long id = temp_id;
 
         ids_.push_back(id);
         vectors_.push_back(vector_data);
