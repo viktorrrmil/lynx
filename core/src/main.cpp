@@ -16,7 +16,7 @@ int main() {
         []() { return std::make_unique<BruteForceIndex>(); }
     );
 
-    BruteForceIndex builder(3, DistanceMetric::L2);
+    BruteForceIndex builder(3, DistanceMetric::COSINE);
     builder.add_vector(1, {1.0f, 2.0f, 3.0f});
     builder.add_vector(2, {0.0f, 1.0f, 1.0f});
     builder.add_vector(3, {5.0f, 5.0f, 5.0f});
@@ -29,7 +29,7 @@ int main() {
         return 1;
     }
 
-    auto results = index->search({0.0f, 0.0f, 0.0f}, 2);
+    auto results = index->search({1.0f, 12.0f, 4.0f}, 2);
     for (const auto& r : results) {
         std::cout << "ID: " << r.first << ", Distance: " << r.second << "\n";
     }

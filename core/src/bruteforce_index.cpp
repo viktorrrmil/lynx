@@ -38,7 +38,7 @@ bool BruteForceIndex::add_vector(long id, const std::vector<float>& vector_data)
 
 std::vector<std::pair<long, float>>
 BruteForceIndex::search(const std::vector<float>& query, long k) const {
-    if (query.empty() || query.size() != dimension_ || k <= 0) {
+    if (vectors_.empty() || query.empty() || query.size() != dimension_ || k <= 0) {
         return {};
     }
 

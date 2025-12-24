@@ -1,20 +1,38 @@
-cmake_minimum_required(VERSION 4.1)
-project(lynx)
+cmake_minimum_required(VERSION 3.20)
+project(lynx LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(lynx
-        src/main.cpp
-        include/lynx/bruteforce_index.h
+enable_testing()
+
+add_library(lynx_core
         src/bruteforce_index.cpp
+        src/utils/metric.cpp
         src/index_loader.cpp
         src/index_registry.cpp
         src/serialization.cpp
-        include/lynx/vector_index.h
-        include/lynx/index_registry.h
-        include/lynx/index_loader.h
-        include/lynx/utils/metric.h
-        src/utils/file_utils.cpp
-        src/utils/math.cpp
-        src/utils/metric.cpp
 )
+
+target_include_directories(lynx_core
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+)
+
+add_executable(lynx
+        src/main.cpp
+)
+
+target_link_libraries(lynx
+        lynx_core
+)
+
+include(FetchContent)
+
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+
+FetchContent_MakeAvailable(googletest)
+
+add_subdirectory(tests)
