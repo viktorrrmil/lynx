@@ -27,6 +27,10 @@ public:
         return metric_;
     }
 
+    long dimension() const override {
+        return dimension_;
+    }
+
     bool add_vector(long id, const std::vector<float>& vector_data) override;
 
     std::vector<std::pair<long, float>>

@@ -6,6 +6,7 @@
 #include "lynx/bruteforce_index.h"
 #include "lynx/utils/metric.h"
 
+// Add and search returns the same vector
 TEST(BruteForceIndexTest, SimpleAddAndSearch) {
     BruteForceIndex index(2, DistanceMetric::L2);
     EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
@@ -16,6 +17,7 @@ TEST(BruteForceIndexTest, SimpleAddAndSearch) {
     EXPECT_FLOAT_EQ(results[0].second, 0.0f); // Distance to itself
 }
 
+// Top-K returns correct amount of results
 TEST(BruteForceIndexTest, TopKCorrentAmount) {
     BruteForceIndex index(2, DistanceMetric::L2);
     index.add_vector(1, {1.0f, 2.0f});
@@ -28,6 +30,7 @@ TEST(BruteForceIndexTest, TopKCorrentAmount) {
     ASSERT_EQ(results.size(), 3);
 }
 
+// Results are sorted by distance
 TEST(BruteFoceIndexTest, ResultsSortedByDistance) {
     BruteForceIndex index(2, DistanceMetric::L2);
     index.add_vector(1, {1.0f, 2.0f});
@@ -43,6 +46,7 @@ TEST(BruteFoceIndexTest, ResultsSortedByDistance) {
     }
 }
 
+// Different distance metrics give different ordering
 TEST(BruteForceIndexTest, DifferentMetricsOrdering) {
     BruteForceIndex l2_index(2, DistanceMetric::L2);
     BruteForceIndex cosine_index(2, DistanceMetric::COSINE);
@@ -80,12 +84,14 @@ TEST(BruteForceIndexTest, DifferentMetricsOrdering) {
     EXPECT_TRUE(distance_different);
 }
 
+// Adding duplicate IDs should fail
 TEST(BruteForceIndexTest, DuplicateIDNotAllowed) {
     BruteForceIndex index(2, DistanceMetric::L2);
     EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
     EXPECT_FALSE(index.add_vector(1, {2.0f, 3.0f})); // Duplicate ID
 }
 
+// Identical vectors with different IDs
 TEST(BruteForceIndexTest, IdenticalVectorsDifferentIDs) {
     BruteForceIndex index(2, DistanceMetric::L2);
     EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
@@ -97,6 +103,7 @@ TEST(BruteForceIndexTest, IdenticalVectorsDifferentIDs) {
     EXPECT_EQ(results[1].second, 0.0f);
 }
 
+// Dimension mismatch handling
 TEST(BruteForceIndexTest, InvalidVectorDimension) {
     BruteForceIndex index(3, DistanceMetric::L2);
     EXPECT_FALSE(index.add_vector(1, {1.0f, 2.0f})); // Invalid dimension
@@ -106,6 +113,7 @@ TEST(BruteForceIndexTest, InvalidVectorDimension) {
     EXPECT_TRUE(results.empty());
 }
 
+// Search on empty index
 TEST(BruteForceIndexTest, SearchOnEmptyIndex) {
     BruteForceIndex index(2, DistanceMetric::L2);
     auto results = index.search({1.0f, 2.0f}, 1);

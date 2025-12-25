@@ -32,6 +32,7 @@ public:
     virtual DistanceMetric metric() const = 0;
     virtual void set_metric(DistanceMetric metric) = 0;
 
+    virtual long dimension() const = 0;
     virtual void set_dimension(int64_t dimension) = 0;
 
     virtual bool add_vector(long id, const std::vector<float>& vector_data) = 0;
