@@ -5,10 +5,16 @@
 #include "gtest/gtest.h"
 #include "lynx/bruteforce_index.h"
 #include "lynx/index_loader.h"
+#include "lynx/index_registry.h"
 #include "lynx/utils/metric.h"
 
 // Save -> Load preserves results
 TEST(SerializationTest, SaveLoadPreservesResults) {
+    IndexRegistry::register_index(
+        IndexType::BRUTEFORCE,
+        []() { return std::make_unique<BruteForceIndex>(); }
+    );
+
     BruteForceIndex index(2, DistanceMetric::L2);
     index.add_vector(1, {1.0f, 2.0f});
     index.add_vector(2, {2.0f, 3.0f});
@@ -33,12 +39,22 @@ TEST(SerializationTest, SaveLoadPreservesResults) {
 
 // Handling invalid file during load
 TEST(SerializationTest, LoadInvalidFile) {
+    IndexRegistry::register_index(
+        IndexType::BRUTEFORCE,
+        []() { return std::make_unique<BruteForceIndex>(); }
+    );
+
     auto loaded_index = IndexLoader::load("non_existent_file.lynx");
     EXPECT_EQ(loaded_index, nullptr);
 }
 
 // Serialization preserves metadata
 TEST(SerializationTest, PreserveMetadata) {
+    IndexRegistry::register_index(
+        IndexType::BRUTEFORCE,
+        []() { return std::make_unique<BruteForceIndex>(); }
+    );
+
     BruteForceIndex index(3, DistanceMetric::COSINE);
     index.add_vector(1, {1.0f, 2.0f, 3.0f});
     index.add_vector(2, {4.0f, 5.0f, 6.0f});
