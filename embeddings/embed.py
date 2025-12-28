@@ -2,24 +2,22 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import json
 
+from tqdm import tqdm
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-def embed_texts(texts):
-    vectors = model.encode(texts)
-    return vectors
+class Embedder:
+    def __init__(self, model_name="all-MiniLM-L6-v2", normalize=True):
+        self.model = SentenceTransformer(model_name)
+        self.normalize = normalize
 
-if __name__ == "__main__":
-    sample_dataset = [
-        "Harry Potter wizard boy",
-        "A fast sports car",
-        "Magic wand spells",
-        "Cute cats playing"
-    ]
-
-    vectors = embed_texts(sample_dataset)
-
-    with open("vectors.json", "w") as f:
-        json.dump({
-            "texts": sample_dataset,
-            "vectors": vectors.tolist()
-        }, f)
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
+        vectors = []
+        for text in tqdm(texts, desc="Embedding texts"):
+            vec = self.model.encode(
+                text,
+                convert_to_numpy=True,
+                normalize_embeddings=self.normalize
+            )
+            vectors.append(vec)
+        return np.vstack(vectors).astype(np.float32)
