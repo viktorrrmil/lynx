@@ -21,6 +21,8 @@ target_include_directories(lynx_core
 add_executable(lynx
         src/main.cpp
         bindings/python/lynx_bindings.cpp
+        bindings/go/bruteforce_index_wrapper.cpp
+        bindings/go/bruteforce_index_wrapper.h
 )
 
 target_link_libraries(lynx
