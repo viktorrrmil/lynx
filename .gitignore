@@ -1,3 +1,37 @@
+# Build artifacts
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Core library output
+core/lib/*.so
+core/lib/*.a
+core/lib/*.dylib
+
+# Go binaries
+core/bindings/go/bin/
+*.test
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+*.egg-info/
+dist/
+core/bindings/python/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
 /embeddings/.idea/
 /embeddings/venv/
 /.venv/
