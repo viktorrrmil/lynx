@@ -41,21 +41,29 @@ build-wrapper:
 ifeq ($(UNAME_S),Darwin)
 	install_name_tool -id @rpath/$(LIB_NAME) $(LIB_DIR)/$(LIB_NAME)
 endif
-	@echo "✓ Library built: $(LIB_DIR)/$(LIB_NAME)"
+	@echo "[OK] Library built: $(LIB_DIR)/$(LIB_NAME)"
 
-test: build-wrapper
-	@echo "Running Go tests..."
+build-api: build-wrapper
+	@echo "Building API server..."
 ifeq ($(UNAME_S),Darwin)
 	CGO_CFLAGS="-I$(INCLUDE_DIR)" \
 	CGO_LDFLAGS="-L$(LIB_DIR) -llynx_go -lstdc++ -Wl,-rpath,$(shell pwd)/$(LIB_DIR)" \
-	go test -v ./lynx/...
+	go build -o bin/lynx-api cmd/api/main.go
 else
 	CGO_CFLAGS="-I$(INCLUDE_DIR)" \
 	CGO_LDFLAGS="-L$(LIB_DIR) -llynx_go -lstdc++" \
-	LD_LIBRARY_PATH="$(shell pwd)/$(LIB_DIR)" \
-	go test -v ./lynx/...
+	go build -o bin/lynx-api cmd/api/main.go
+endif
+	@echo "✓ API built: bin/lynx-api"
+
+run: build-api
+	@echo "Starting API server on :8080..."
+ifeq ($(UNAME_S),Darwin)
+	DYLD_LIBRARY_PATH="$(shell pwd)/$(LIB_DIR)" ./bin/lynx-api
+else
+	LD_LIBRARY_PATH="$(shell pwd)/$(LIB_DIR)" ./bin/lynx-api
 endif
 
 clean:
 	rm -f $(LIB_DIR)/liblynx_go.*
-	@echo "✓ Cleaned"
+	@echo "[OK] Cleaned"
