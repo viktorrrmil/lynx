@@ -8,6 +8,7 @@ import (
 
 	"lynx/lynx"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -247,10 +248,18 @@ func main() {
 
 	router := gin.Default()
 
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // React dev server
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	router.GET("/info", api.getInfo)
 	router.POST("/add_text", api.addText)
 	router.POST("/add_text_batch", api.addBatch)
-	router.GET("/search", api.search)
+	router.POST("/search", api.search)
 
 	router.Run("localhost:8080")
 }
