@@ -4,6 +4,8 @@
 
 #ifndef LYNX_SERIALIZATION_H
 #define LYNX_SERIALIZATION_H
+
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <vector>

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"os"
 	"sync"
 
 	"lynx/lynx"
@@ -11,6 +12,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+var embeddingServiceURL = os.Getenv("EMBEDDING_SERVICE_URL")
 
 type API struct {
 	index    *lynx.BruteForceIndex
@@ -78,7 +81,8 @@ func getEmbeddings(text string) ([]float32, error) {
 	request := EmbeddingRequest{Text: text}
 	jsonData, _ := json.Marshal(request)
 
-	resp, err := http.Post("http://localhost:5000/embed_text",
+	resp, err := http.Post(
+		embeddingServiceURL+"/embed_text",
 		"application/json",
 		bytes.NewBuffer(jsonData))
 
@@ -100,7 +104,8 @@ func getBatchEmbeddings(textBatch []string) ([][]float32, error) {
 
 	jsonData, _ := json.Marshal(request)
 
-	resp, err := http.Post("http://localhost:5000/embed_text_batch",
+	resp, err := http.Post(
+		embeddingServiceURL+"/embed_text_batch",
 		"application/json",
 		bytes.NewBuffer(jsonData))
 
@@ -261,5 +266,5 @@ func main() {
 	router.POST("/add_text_batch", api.addBatch)
 	router.POST("/search", api.search)
 
-	router.Run("localhost:8080")
+	router.Run("0.0.0.0:8080")
 }

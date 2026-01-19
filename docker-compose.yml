@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  embeddings:
+    build: ./embeddings
+    container_name: lynx-embeddings
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./core
+      dockerfile: bindings/go/Dockerfile
+    container_name: lynx-api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - embeddings
+    environment:
+      - EMBEDDING_SERVICE_URL=http://embeddings:5000
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend/lynx-frontend
+    container_name: lynx-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    restart: unless-stopped
