@@ -23,6 +23,15 @@ add_executable(lynx
         bindings/python/lynx_bindings.cpp
         bindings/go/bruteforce_index_wrapper.cpp
         bindings/go/bruteforce_index_wrapper.h
+        src/utils/k_means/basic_k-means.cpp
+        src/utils/k_means/kmeans.h
+        src/utils/k_means/point.h
+        src/utils/k_means/csv_reader.cpp
+        src/utils/k_means/csv_reader.h
+        src/utils/k_means/csv_reader.cpp
+        src/utils/k_means/cluster.cpp
+        src/utils/k_means/cluster.h
+        src/utils/k_means/__main__.cpp
 )
 
 target_link_libraries(lynx
