@@ -21,9 +21,16 @@ extern "C" {
         long count;
     } SearchResults;
 
+    typedef struct {
+        float* data;
+        long length;
+    } VectorData;
+
+
     void* BruteForceIndex_new(long dimension, int metric);
     void BruteForceIndex_delete(void* index);
     bool BruteForceIndex_add_vector(void* index, long id, const float* vector_data, long vector_size);
+    VectorData* BruteForceIndex_get_vector(void* index, long id);
     SearchResults* BruteForceIndex_search(void* index, const float* query, long query_size, long k);
     void BruteForceIndex_free_search_results(SearchResults* results);
     long BruteForceIndex_size(void* index);
@@ -32,7 +39,9 @@ extern "C" {
     long BruteForceIndex_dimension(void* index);
     int BruteForceIndex_metric(void* index);
 
-    void free(void* index);
+    void BruteForceIndex_free_vector(VectorData* vector);
+
+    // void free(void* index);
 
 #ifdef __cplusplus
 }

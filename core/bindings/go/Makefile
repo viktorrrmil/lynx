@@ -21,14 +21,18 @@ endif
 # Source files needed
 CORE_SOURCES = \
 	$(SRC_DIR)/bruteforce_index.cpp \
+	$(SRC_DIR)/ivf_index.cpp \
 	$(SRC_DIR)/serialization.cpp \
 	$(SRC_DIR)/index_loader.cpp \
 	$(SRC_DIR)/index_registry.cpp \
-	$(SRC_DIR)/utils/metric.cpp
-
-WRAPPER_SOURCE = $(WRAPPER_DIR)/bruteforce_index_wrapper.cpp
+	$(SRC_DIR)/utils/metric.cpp \
+	$(SRC_DIR)/utils/k_means/kmeans.cpp
 
 .PHONY: build-wrapper build-go test run clean
+
+WRAPPER_SOURCES = \
+	$(BRUTEFORCE_WRAPPER_SOURCE) \
+	$(IVF_WRAPPER_SOURCE)
 
 build-wrapper:
 	@echo "Building C++ wrapper library for $(UNAME_S)..."
@@ -36,7 +40,7 @@ build-wrapper:
 	g++ -std=c++20 -shared -fPIC \
 		-I$(INCLUDE_DIR) \
 		-o $(LIB_DIR)/$(LIB_NAME) \
-		$(WRAPPER_SOURCE) \
+		$(WRAPPER_SOURCES) \
 		$(CORE_SOURCES)
 ifeq ($(UNAME_S),Darwin)
 	install_name_tool -id @rpath/$(LIB_NAME) $(LIB_DIR)/$(LIB_NAME)

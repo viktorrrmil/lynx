@@ -1,6 +1,10 @@
 
 #include "../include/lynx/bruteforce_index.h"
 #include <fstream>
+#include <vector>
+
+enum class DistanceMetric : int64_t;
+class BruteForceIndex;
 
 extern "C" {
     void* BruteForceIndex_new(long dimension, int metric) {
@@ -11,6 +15,32 @@ extern "C" {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
         std::vector<float> vec(vector_data, vector_data + vector_size);
         return bf_index->add_vector(id, vec);
+    }
+
+    typedef struct {
+        float* data;
+        long length;
+    } VectorData;
+
+    VectorData* BruteForceIndex_get_vector(void* index, long id) {
+        auto* bf_index = static_cast<BruteForceIndex*>(index);
+        std::vector<float> vec;
+        if (!bf_index->get_vector(id, vec)) {
+            return nullptr;
+        }
+
+        auto* result = new VectorData();
+        result->length = vec.size();
+        result->data = new float[vec.size()];
+        std::copy(vec.begin(), vec.end(), result->data);
+        return result;
+    }
+
+    void BruteForceIndex_free_vector(VectorData* vector) {
+        if (vector) {
+            delete[] vector->data;
+            delete vector;
+        }
     }
 
     void BruteForceIndex_delete(void* index) {

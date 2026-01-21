@@ -32,6 +32,7 @@ public:
     }
 
     bool add_vector(long id, const std::vector<float>& vector_data) override;
+    bool get_vector(long id, std::vector<float>& out_vector) const;
 
     std::vector<std::pair<long, float>>
     search(const std::vector<float>& query, long k) const override;

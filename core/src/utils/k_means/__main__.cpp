@@ -7,7 +7,7 @@
 #include <random>
 #include <sstream>
 
-#include "kmeans.h"
+#include "../../../include/lynx/utils/kmeans.h"
 
 std::vector<std::vector<float>> read_csv(const std::string& filename) {
     std::vector<std::vector<float>> points;

@@ -6,7 +6,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 #include <fstream>
+#include <iostream>
 
 #include "../include/lynx/serialization.h"
 
@@ -36,8 +38,20 @@ bool BruteForceIndex::add_vector(long id, const std::vector<float>& vector_data)
     return true;
 }
 
+bool BruteForceIndex::get_vector(long id, std::vector<float>& out_vector) const {
+    for (size_t i = 0; i < ids_.size(); i++) {
+        if (ids_[i] == id) {
+            out_vector = vectors_[i];
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::pair<long, float>>
 BruteForceIndex::search(const std::vector<float>& query, long k) const {
+    auto start = std::chrono::steady_clock::now();
+
     if (vectors_.empty() || query.empty() || query.size() != dimension_ || k <= 0) {
         return {};
     }
@@ -57,6 +71,12 @@ BruteForceIndex::search(const std::vector<float>& query, long k) const {
                                        [](auto &a, auto &b) {
                                            return a.second < b.second;
                                        });
+
+        auto end = std::chrono::steady_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+        std::cout << "Search time: " << duration.count() << " us\n";
         return { *min_it };
     } else {
         std::sort(temporary_results.begin(), temporary_results.end(),
@@ -71,7 +91,11 @@ BruteForceIndex::search(const std::vector<float>& query, long k) const {
         for (size_t i = 0; i < limit; i++) {
             results.push_back(temporary_results[i]);
         }
+        auto end = std::chrono::steady_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
+        std::cout << "Search time: " << duration.count() << " us\n";
         return results;
     }
 }
@@ -173,4 +197,8 @@ bool BruteForceIndex::load(std::ifstream &in) {
 
 IndexType BruteForceIndex::type() const {
     return IndexType::BRUTEFORCE;
+}
+
+void BruteForceIndex_free_vector(float* vector) {
+    delete[] vector;
 }

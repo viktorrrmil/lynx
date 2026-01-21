@@ -32,6 +32,10 @@ add_executable(lynx
         src/utils/k_means/cluster.cpp
         src/utils/k_means/cluster.h
         src/utils/k_means/__main__.cpp
+        include/ivf_index.h
+        src/ivf_index.cpp
+        bindings/go/wrapper/ivf_index_wrapper.cpp
+        bindings/go/wrapper/ivf_index_wrapper.h
 )
 
 target_link_libraries(lynx

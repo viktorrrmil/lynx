@@ -2,7 +2,7 @@
 // Created by viktor on 1/20/26.
 //
 
-#include "kmeans.h"
+#include "../include/lynx/utils/kmeans.h"
 
 #include <random>
 

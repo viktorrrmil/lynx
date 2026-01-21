@@ -57,7 +57,7 @@ func (b *BruteForceIndex) Search(query []float32, k int64) ([]SearchResult, erro
 	}
 
 	if k <= 0 {
-		return nil, errors.New("k must be greater than 0")
+		return nil, errors.New("k must be greater than zero")
 	}
 
 	cResults := C.BruteForceIndex_search(
@@ -128,4 +128,22 @@ func (b *BruteForceIndex) Load(path string) error {
 	}
 
 	return nil
+}
+
+func (b *BruteForceIndex) GetVector(id int64) ([]float32, error) {
+	cVector := C.BruteForceIndex_get_vector(b.ptr, C.long(id))
+	if cVector == nil {
+		return nil, errors.New("vector not found")
+	}
+	defer C.BruteForceIndex_free_vector(cVector)
+
+	length := int(cVector.length)
+	vector := make([]float32, length)
+
+	cDataSlice := unsafe.Slice(cVector.data, length)
+	for i := 0; i < length; i++ {
+		vector[i] = float32(cDataSlice[i])
+	}
+
+	return vector, nil
 }

@@ -22,15 +22,18 @@ RUN g++ -std=c++20 -shared -fPIC \
     -I/app/include \
     -o /app/lib/liblynx_go.so \
     /app/wrapper/bruteforce_index_wrapper.cpp \
+    /app/wrapper/ivf_index_wrapper.cpp \
     /app/src/bruteforce_index.cpp \
+    /app/src/ivf_index.cpp \
     /app/src/serialization.cpp \
     /app/src/index_loader.cpp \
     /app/src/index_registry.cpp \
-    /app/src/utils/metric.cpp
+    /app/src/utils/metric.cpp \
+    /app/src/utils/k_means/kmeans.cpp
 
 # Build Go binary
 RUN CGO_ENABLED=1 \
-    CGO_CFLAGS="-I/app/include" \
+    CGO_CFLAGS="-I/app/core/include" \
     CGO_LDFLAGS="-L/app/lib -llynx_go -lstdc++" \
     go build -o /lynx-api /app/cmd/api/main.go
 

@@ -17,3 +17,7 @@ type SearchResult struct {
 type BruteForceIndex struct {
 	ptr unsafe.Pointer
 }
+
+type IVFIndex struct {
+	ptr unsafe.Pointer
+}
