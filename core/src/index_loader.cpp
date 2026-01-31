@@ -51,8 +51,6 @@ namespace IndexLoader {
         }
 
         index->set_metric(metric);
-        index->set_dimension(dimension);
-        index->load(in);
 
         return index;
     }

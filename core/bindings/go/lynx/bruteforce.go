@@ -9,11 +9,12 @@ package lynx
 import "C"
 import (
 	"errors"
+	"strconv"
 	"unsafe"
 )
 
-func NewBruteforceIndex(dimension int64, metric DistanceMetric) *BruteForceIndex {
-	ptr := C.BruteForceIndex_new(C.long(dimension), C.int(metric))
+func NewBruteforceIndex(metric DistanceMetric) *BruteForceIndex {
+	ptr := C.BruteForceIndex_new(C.int(metric))
 
 	return &BruteForceIndex{ptr: ptr}
 }
@@ -25,29 +26,9 @@ func (b *BruteForceIndex) Delete() {
 	}
 }
 
-func (b *BruteForceIndex) Add(id int64, vector []float32) error {
-	if b.ptr == nil {
-		return errors.New("BruteForceIndex pointer is nil")
-	}
-
-	if len(vector) == 0 {
-		return errors.New("vector cannot be empty")
-	}
-
-	res := C.BruteForceIndex_add_vector(
-		b.ptr,
-		C.long(id),
-		(*C.float)(&vector[0]),
-		C.long(len(vector)),
-	)
-
-	if !res {
-		return errors.New("failed to add vector to BruteForceIndex")
-	}
-	return nil
-}
-
 func (b *BruteForceIndex) Search(query []float32, k int64) ([]SearchResult, error) {
+	print("Bruteforce vector store size: " + strconv.FormatInt(b.Size(), 10) + "\n")
+
 	if b.ptr == nil {
 		return nil, errors.New("BruteForceIndex pointer is nil")
 	}
@@ -100,50 +81,6 @@ func (b *BruteForceIndex) Dimension() int64 {
 	return int64(C.BruteForceIndex_dimension(b.ptr))
 }
 
-func (b *BruteForceIndex) Metric() DistanceMetric {
-	return DistanceMetric(C.BruteForceIndex_metric(b.ptr))
-}
-
-func (b *BruteForceIndex) Save(path string) error {
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-
-	res := C.BruteForceIndex_save(b.ptr, cPath)
-
-	if !res {
-		return errors.New("failed to save BruteForceIndex")
-	}
-
-	return nil
-}
-
-func (b *BruteForceIndex) Load(path string) error {
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-
-	res := C.BruteForceIndex_load(b.ptr, cPath)
-
-	if !res {
-		return errors.New("failed to load BruteForceIndex")
-	}
-
-	return nil
-}
-
-func (b *BruteForceIndex) GetVector(id int64) ([]float32, error) {
-	cVector := C.BruteForceIndex_get_vector(b.ptr, C.long(id))
-	if cVector == nil {
-		return nil, errors.New("vector not found")
-	}
-	defer C.BruteForceIndex_free_vector(cVector)
-
-	length := int(cVector.length)
-	vector := make([]float32, length)
-
-	cDataSlice := unsafe.Slice(cVector.data, length)
-	for i := 0; i < length; i++ {
-		vector[i] = float32(cDataSlice[i])
-	}
-
-	return vector, nil
+func (b *BruteForceIndex) SetVectorStore(store *InMemoryVectorStore) bool {
+	return C.BruteForceIndex_set_vector_store(b.ptr, store.ptr) == 1
 }

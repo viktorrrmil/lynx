@@ -16,39 +16,8 @@ IVFIndex::IVFIndex(long dimension, DistanceMetric metric, std::int64_t nlist, st
     is_trained_ = false;
 }
 
-bool IVFIndex::add_vector(long id, const std::vector<float> &vector_data) {
-    if (!is_trained_) {
-        return false;
-    }
-
-    if (vector_data.size() != dimension_) {
-        return false;
-    }
-
-    // Find nearest centroid
-    float min_distance = std::numeric_limits<float>::infinity();
-    std::int64_t best_centroid = -1;
-
-    for (std::int64_t i = 0; i < centroids_.size(); i++) {
-        float distance = compute_distance(distance_metric_, vector_data, centroids_[i]);
-        if (distance < min_distance) {
-            min_distance = distance;
-            best_centroid = i;
-        }
-    }
-
-    if (best_centroid == -1) {
-        return false;
-    }
-
-    inverted_lists_[best_centroid].push_back(id);
-    vectors_[id] = vector_data;
-
-    return true;
-}
-
 std::vector<std::pair<long, float>>
-IVFIndex::search(const std::vector<float> &query, long k) const {
+IVFIndex::search(const std::span<const float> &query, long k) const {
     if (!is_trained_) {
         return {};
     }
@@ -83,20 +52,6 @@ IVFIndex::search(const std::vector<float> &query, long k) const {
     }
 
     return results;
-}
-
-std::size_t IVFIndex::size() const {
-    return vectors_.size();
-}
-
-bool IVFIndex::save(const std::string &path) const {
-    // TODO: Implement IVFIndex saving
-    return false;
-}
-
-bool IVFIndex::load(std::ifstream &in) {
-    // TODO: Implement IVFIndex loading
-    return false;
 }
 
 IndexType IVFIndex::type() const {

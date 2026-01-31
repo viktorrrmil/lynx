@@ -6,6 +6,7 @@
 #define LYNX_VECTOR_INDEX_H
 #include <vector>
 #include <cstddef>
+#include <memory>
 
 #include "utils/metric.h"
 
@@ -32,18 +33,10 @@ public:
     virtual DistanceMetric metric() const = 0;
     virtual void set_metric(DistanceMetric metric) = 0;
 
-    virtual long dimension() const = 0;
-    virtual void set_dimension(int64_t dimension) = 0;
-
-    virtual bool add_vector(long id, const std::vector<float>& vector_data) = 0;
-
     virtual std::vector<std::pair<long, float>>
-    search(const std::vector<float>& query, long k) const = 0;
+    search(const std::span<const float>& query, long k) const = 0;
 
-    virtual std::size_t size() const = 0;
-
-    virtual bool save(const std::string& path) const = 0;
-    virtual bool load(std::ifstream &in) = 0;
+    virtual bool set_vector_store(std::shared_ptr<class InMemoryVectorStore> store) = 0;
 
     virtual IndexType type() const = 0;
 };

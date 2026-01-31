@@ -3,9 +3,9 @@
 //
 
 #include "gtest/gtest.h"
-#include "lynx/bruteforce_index.h"
+#include "../include/lynx/bruteforce_index.h"
 #include "lynx/index_loader.h"
-#include "lynx/index_registry.h"
+#include "../include/lynx/index_registry.h"
 #include "lynx/utils/metric.h"
 
 // Save -> Load preserves results

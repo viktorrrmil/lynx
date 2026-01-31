@@ -21,21 +21,19 @@ target_include_directories(lynx_core
 add_executable(lynx
         src/main.cpp
         bindings/python/lynx_bindings.cpp
-        bindings/go/bruteforce_index_wrapper.cpp
-        bindings/go/bruteforce_index_wrapper.h
-        src/utils/k_means/basic_k-means.cpp
-        src/utils/k_means/kmeans.h
-        src/utils/k_means/point.h
-        src/utils/k_means/csv_reader.cpp
-        src/utils/k_means/csv_reader.h
-        src/utils/k_means/csv_reader.cpp
-        src/utils/k_means/cluster.cpp
-        src/utils/k_means/cluster.h
+        bindings/go/wrapper/bruteforce_index_wrapper.cpp
+        bindings/go/wrapper/bruteforce_index_wrapper.h
         src/utils/k_means/__main__.cpp
-        include/ivf_index.h
+        src/utils/k_means/kmeans.cpp
+        include/lynx/ivf_index.h
         src/ivf_index.cpp
         bindings/go/wrapper/ivf_index_wrapper.cpp
         bindings/go/wrapper/ivf_index_wrapper.h
+        include/lynx/vector_store.h
+        src/in_memory_vector_store.cpp
+        include/lynx/in_memory_vector_store.h
+        bindings/go/wrapper/in_memory_vector_store_wrapper.h
+        bindings/go/wrapper/in_memory_vector_store_wrapper.cpp
 )
 
 target_link_libraries(lynx

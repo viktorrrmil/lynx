@@ -22,17 +22,19 @@ endif
 CORE_SOURCES = \
 	$(SRC_DIR)/bruteforce_index.cpp \
 	$(SRC_DIR)/ivf_index.cpp \
+	$(SRC_DIR)/in_memory_vector_store.cpp \
 	$(SRC_DIR)/serialization.cpp \
 	$(SRC_DIR)/index_loader.cpp \
 	$(SRC_DIR)/index_registry.cpp \
 	$(SRC_DIR)/utils/metric.cpp \
 	$(SRC_DIR)/utils/k_means/kmeans.cpp
 
-.PHONY: build-wrapper build-go test run clean
-
 WRAPPER_SOURCES = \
-	$(BRUTEFORCE_WRAPPER_SOURCE) \
-	$(IVF_WRAPPER_SOURCE)
+	$(WRAPPER_DIR)/bruteforce_index_wrapper.cpp \
+	$(WRAPPER_DIR)/ivf_index_wrapper.cpp \
+	$(WRAPPER_DIR)/in_memory_vector_store_wrapper.cpp
+
+.PHONY: build-wrapper build-go test run clean
 
 build-wrapper:
 	@echo "Building C++ wrapper library for $(UNAME_S)..."
