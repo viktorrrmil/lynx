@@ -50,7 +50,7 @@ namespace IndexLoader {
             return nullptr;
         }
 
-        index->set_metric(metric);
+        index->set_distance_metric(metric);
 
         return index;
     }

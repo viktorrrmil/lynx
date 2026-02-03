@@ -24,9 +24,10 @@ extern "C" {
 
     SearchResults* BruteForceIndex_search(void* index, const float* query, long query_size, long k);
     void BruteForceIndex_free_search_results(SearchResults* results);
+
     long BruteForceIndex_size(void* index);
     long BruteForceIndex_dimension(void* index);
-    int BruteForceIndex_metric(void* index);
+    int BruteForceIndex_distance_metric(void* index);
 
     int BruteForceIndex_set_vector_store(void* index, void* store);
 

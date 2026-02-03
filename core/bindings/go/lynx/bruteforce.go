@@ -59,7 +59,10 @@ func (b *BruteForceIndex) Search(query []float32, k int64) ([]SearchResult, erro
 		return []SearchResult{}, nil
 	}
 
-	results := unsafe.Slice(cResults.results, count)
+	results := unsafe.Slice(
+		(*CSearchResult)(unsafe.Pointer(cResults.results)),
+		count,
+	)
 
 	searchResults := make([]SearchResult, count)
 

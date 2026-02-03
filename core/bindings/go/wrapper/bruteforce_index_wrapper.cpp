@@ -6,14 +6,6 @@ enum class DistanceMetric : int64_t;
 class BruteForceIndex;
 
 extern "C" {
-    void* BruteForceIndex_new(int metric) {
-        return new BruteForceIndex(static_cast<DistanceMetric>(metric));
-    }
-
-    void BruteForceIndex_delete(void* index) {
-        delete static_cast<BruteForceIndex*>(index);
-    }
-
     typedef struct {
         long id;
         float distance;
@@ -23,6 +15,14 @@ extern "C" {
         SearchResult* results;
         long count;
     } SearchResults;
+
+    void* BruteForceIndex_new(int metric) {
+        return new BruteForceIndex(static_cast<DistanceMetric>(metric));
+    }
+
+    void BruteForceIndex_delete(void* index) {
+        delete static_cast<BruteForceIndex*>(index);
+    }
 
     SearchResults* BruteForceIndex_search(void* index, const float* query, long query_size, long k) {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
@@ -57,6 +57,11 @@ extern "C" {
     long BruteForceIndex_dimension(void* index) {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
         return bf_index->dimension();
+    }
+
+    int BruteForceIndex_distance_metric(void* index) {
+        auto* bf_index = static_cast<BruteForceIndex*>(index);
+        return static_cast<int>(bf_index->distance_metric());
     }
 
     int BruteForceIndex_set_vector_store(void* index, void* store) {

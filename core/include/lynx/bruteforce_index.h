@@ -14,18 +14,18 @@
 
 class BruteForceIndex : public VectorIndex {
 private:
-    DistanceMetric metric_;
+    DistanceMetric distance_metric_;
     std::shared_ptr<InMemoryVectorStore> vector_store_;
 public:
-    BruteForceIndex() : metric_(DistanceMetric::L2) {}
+    BruteForceIndex() : distance_metric_(DistanceMetric::L2) {}
     explicit BruteForceIndex(DistanceMetric metric);
 
-    void set_metric(DistanceMetric metric) override {
-        metric_ = metric;
+    void set_distance_metric(DistanceMetric metric) override {
+        distance_metric_ = metric;
     }
 
-    DistanceMetric metric() const override {
-        return metric_;
+    DistanceMetric distance_metric() const override {
+        return distance_metric_;
     }
 
     std::vector<std::pair<long, float>>
@@ -35,7 +35,7 @@ public:
 
     bool set_vector_store(std::shared_ptr<InMemoryVectorStore> store) override;
 
-    long size() const;
+    size_t size() const;
     int dimension() const;
 };
 

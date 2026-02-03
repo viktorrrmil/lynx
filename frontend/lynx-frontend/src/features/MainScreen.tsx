@@ -1,15 +1,14 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import type {IndexResults} from "../types/types.ts";
 import ResultsColumn from "./results/ResultColumn.tsx";
 import UploadSection from "./UploadSection.tsx";
+import InfoScreen from "./InfoScreen.tsx";
 
-// TODO: Finish simplifying the frontend
 const MainScreen = () => {
     const [loading, setLoading] = useState(false);
     const [query, setQuery] = useState('');
     const [bfResults, setBfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [ivfResults, setIvfResults] = useState<IndexResults>({results: [], searchTime: null});
-    const [ivfTrained, setIvfTrained] = useState(false);
     const [k, setK] = useState(10);
 
     const handleSearch = async () => {
@@ -19,17 +18,17 @@ const MainScreen = () => {
 
         try {
             // Search both indexes in parallel
-            const [bfResponse] = await Promise.all([
+            const [bfResponse, ivfResponse] = await Promise.all([
                 fetch('http://localhost:8080/bf_search', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({query, top_k: k}),
                 }),
-                // ivfTrained ? fetch('http://localhost:8080/ivf_search', {
-                //     method: 'POST',
-                //     headers: {'Content-Type': 'application/json'},
-                //     body: JSON.stringify({query, top_k: k}),
-                // }) : null
+                fetch('http://localhost:8080/ivf_search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query, top_k: k}),
+                })
             ]);
 
             if (bfResponse.ok) {
@@ -40,13 +39,13 @@ const MainScreen = () => {
                 });
             }
 
-            // if (ivfResponse && ivfResponse.ok) {
-            //     const data = await ivfResponse.json();
-            //     setIvfResults({
-            //         results: data.results || [],
-            //         searchTime: data.search_time_ms
-            //     });
-            // }
+            if (ivfResponse && ivfResponse.ok) {
+                const data = await ivfResponse.json();
+                setIvfResults({
+                    results: data.results || [],
+                    searchTime: data.search_time_ms
+                });
+            }
         } catch (error) {
             console.error('Search error:', error);
         } finally {
@@ -68,12 +67,15 @@ const MainScreen = () => {
                 </div>
 
                 {/* Upload Section */}
-                <UploadSection
-                    loading={loading}
-                    setLoading={setLoading}
-                    ivfTrained={ivfTrained}
-                    setIvfTrained={setIvfTrained}
-                />
+                <div className="flex w-full justify-center mb-12 items-stretch gap-4">
+                    <div className="flex-1">
+                        <UploadSection loading={loading} setLoading={setLoading} />
+                    </div>
+                    <div className="flex-1">
+                        <InfoScreen />
+                    </div>
+                </div>
+
 
                 {/* Search Section */}
                 <div>
@@ -147,7 +149,6 @@ const MainScreen = () => {
                                 title="IVF Index"
                                 results={ivfResults.results}
                                 searchTime={ivfResults.searchTime}
-                                trained={ivfTrained}
                             />
                         </div>
                     </div>

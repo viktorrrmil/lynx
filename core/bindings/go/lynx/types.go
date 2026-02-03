@@ -1,5 +1,6 @@
 package lynx
 
+import "C"
 import "unsafe"
 
 type DistanceMetric int
@@ -12,6 +13,11 @@ const (
 type SearchResult struct {
 	ID       int64   `json:"id"`
 	Distance float64 `json:"distance"`
+}
+
+type CSearchResult struct {
+	id       C.longlong
+	distance C.double
 }
 
 type BruteForceIndex struct {

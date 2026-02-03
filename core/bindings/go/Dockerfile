@@ -31,7 +31,7 @@ RUN g++ -std=c++20 -shared -fPIC \
 RUN CGO_ENABLED=1 \
     CGO_CFLAGS="-I/app/core/include" \
     CGO_LDFLAGS="-L/app/lib -llynx_go -lstdc++" \
-    go build -o /lynx-api /app/cmd/api/main.go
+    go build -o /lynx-api ./cmd/api
 
 FROM --platform=linux/amd64 alpine:latest
 RUN apk add --no-cache libstdc++

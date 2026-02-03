@@ -30,8 +30,8 @@ class VectorIndex {
 public:
     virtual ~VectorIndex() = default;
 
-    virtual DistanceMetric metric() const = 0;
-    virtual void set_metric(DistanceMetric metric) = 0;
+    virtual DistanceMetric distance_metric() const = 0;
+    virtual void set_distance_metric(DistanceMetric distance_metric) = 0;
 
     virtual std::vector<std::pair<long, float>>
     search(const std::span<const float>& query, long k) const = 0;

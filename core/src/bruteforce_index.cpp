@@ -13,16 +13,7 @@
 #include "../include/lynx/in_memory_vector_store.h"
 #include "../include/lynx/serialization.h"
 
-BruteForceIndex::BruteForceIndex(DistanceMetric metric) : metric_(metric) {}
-
-bool BruteForceIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
-    if (store) {
-        vector_store_ = store;
-        return true;
-    }
-    return false;
-}
-
+BruteForceIndex::BruteForceIndex(DistanceMetric metric) : distance_metric_(metric) {}
 
 std::vector<std::pair<long, float>>
 BruteForceIndex::search(const std::span<const float>& query, long k) const {
@@ -36,7 +27,7 @@ BruteForceIndex::search(const std::span<const float>& query, long k) const {
 
     for (size_t i = 0; i < vector_store_->size(); i++) {
         std::span<const float> stored_vector = vector_store_->get_vector(i);
-        float distance = compute_distance(metric_, query, stored_vector);
+        float distance = compute_distance(distance_metric_, query, stored_vector);
         temporary_results.emplace_back(i, distance);
     }
 
@@ -64,7 +55,23 @@ BruteForceIndex::search(const std::span<const float>& query, long k) const {
     return results;
 }
 
-long BruteForceIndex::size() const {
+IndexType BruteForceIndex::type() const {
+    return IndexType::BRUTEFORCE;
+}
+
+void BruteForceIndex_free_vector(float* vector) {
+    delete[] vector;
+}
+
+bool BruteForceIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
+    if (store) {
+        vector_store_ = store;
+        return true;
+    }
+    return false;
+}
+
+size_t BruteForceIndex::size() const {
     if (!vector_store_) return 0;
     return static_cast<long>(vector_store_->size());
 }
@@ -72,12 +79,4 @@ long BruteForceIndex::size() const {
 int BruteForceIndex::dimension() const {
     if (!vector_store_) return 0;
     return vector_store_->dimension();
-}
-
-IndexType BruteForceIndex::type() const {
-    return IndexType::BRUTEFORCE;
-}
-
-void BruteForceIndex_free_vector(float* vector) {
-    delete[] vector;
 }
