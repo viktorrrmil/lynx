@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -79,7 +80,6 @@ func (api *API) ivfSearch(c *gin.Context) {
 	defer api.lock.RUnlock()
 
 	embeddedQuery, err := getEmbeddings(request.Query)
-
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
@@ -87,17 +87,32 @@ func (api *API) ivfSearch(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("=== QUERY EMBEDDING DEBUG ===")
+	fmt.Printf("Query text: %s\n", request.Query)
+	fmt.Printf("Embedding length: %d\n", len(embeddedQuery))
+	fmt.Printf("First 5 values: %v\n", embeddedQuery[:5])
+
+	sum := float32(0)
+	for _, v := range embeddedQuery {
+		sum += v * v
+	}
+	fmt.Printf("L2 norm squared: %f\n", sum)
+	fmt.Println("============================")
+
 	var start = time.Now()
 
 	results, err := api.ivfIndex.Search(embeddedQuery, request.TopK)
-
-	var searchTime = time.Since(start)
-
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
 	}
+
+	for i, result := range results {
+		fmt.Printf("Result %d: ID=%d, Distance=%f\n", i, result.ID, result.Distance)
+	}
+
+	var searchTime = time.Since(start)
 
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {

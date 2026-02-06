@@ -26,7 +26,8 @@ RUN g++ -std=c++20 -shared -fPIC \
     /app/src/index_loader.cpp \
     /app/src/index_registry.cpp \
     /app/src/utils/metric.cpp \
-    /app/src/utils/k_means/kmeans.cpp
+    /app/src/utils/k_means/kmeans.cpp \
+    /app/src/utils/logging.cpp
 
 RUN CGO_ENABLED=1 \
     CGO_CFLAGS="-I/app/core/include" \

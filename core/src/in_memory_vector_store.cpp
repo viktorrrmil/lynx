@@ -4,7 +4,11 @@
 
 #include "../include/lynx/in_memory_vector_store.h"
 
+#include <fstream>
+#include <ostream>
 #include <stdexcept>
+
+#include "lynx/utils/logging.h"
 
 std::size_t InMemoryVectorStore::size() const {
     return data_.size();
@@ -29,6 +33,15 @@ bool InMemoryVectorStore::add_vector(const std::vector<float> &vector_data) {
     if (!data_.empty() && dimension() != vector_data.size()) {
         return false;
     }
+
+    debug_log("=== ADD_VECTOR DEBUG ===");
+    debug_log("Vector size: " + std::to_string(vector_data.size()));
+
+    std::string values = "First 5 values: ";
+    for (size_t i = 0; i < std::min(size_t(5), vector_data.size()); i++) {
+        values += std::to_string(vector_data[i]) + " ";
+    }
+    debug_log(values);
 
     data_.push_back(vector_data);
     return true;

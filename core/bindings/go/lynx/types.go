@@ -17,7 +17,7 @@ type SearchResult struct {
 
 type CSearchResult struct {
 	id       C.longlong
-	distance C.double
+	distance C.float
 }
 
 type BruteForceIndex struct {

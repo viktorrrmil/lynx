@@ -27,7 +27,8 @@ CORE_SOURCES = \
 	$(SRC_DIR)/index_loader.cpp \
 	$(SRC_DIR)/index_registry.cpp \
 	$(SRC_DIR)/utils/metric.cpp \
-	$(SRC_DIR)/utils/k_means/kmeans.cpp
+	$(SRC_DIR)/utils/k_means/kmeans.cpp \
+	$(SRC_DIR)/utils/logging.cpp
 
 WRAPPER_SOURCES = \
 	$(WRAPPER_DIR)/bruteforce_index_wrapper.cpp \

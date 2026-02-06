@@ -95,7 +95,7 @@ func (i *IVFIndex) Train(trainingData []float32, numVectors int64, vectorSize in
 }
 
 func (i *IVFIndex) SetVectorStore(store *InMemoryVectorStore) bool {
-	return C.BruteForceIndex_set_vector_store(i.ptr, store.ptr) == 1
+	return C.IVFIndex_set_vector_store(i.ptr, store.ptr) == 1
 
 }
 

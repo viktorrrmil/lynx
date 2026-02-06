@@ -10,6 +10,7 @@
 
 #include "../include/lynx/utils/kmeans.h"
 #include "lynx/in_memory_vector_store.h"
+#include "lynx/utils/logging.h"
 
 IVFIndex::IVFIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe)
     : distance_metric_(metric), nlist_(nlist), nprobe_(nprobe) {
@@ -24,12 +25,23 @@ IVFIndex::search(const std::span<const float> &query, long k) const {
         return {};
     }
 
+    // DEBUG LOG
+    // debug_log("=== IVF SEARCH C++ DEBUG ===");
+    // debug_log("Distance metric: " + std::to_string(static_cast<int>(distance_metric_)));
+    // debug_log("Query size: " + std::to_string(query.size()));
+    // debug_log("Query first 5: ");
+    // for (size_t i = 0; i < std::min(query.size(), static_cast<size_t>(5)); i++) {
+    //     debug_log("  " + std::to_string(query[i]));
+    // }
+
     // Looking for the nearest centroids
     std::vector<std::pair<std::int64_t, float> > centroid_distances;
     for (std::int64_t i = 0; i < centroids_.size(); i++) {
         float distance = compute_distance(distance_metric_, query, centroids_[i]);
         centroid_distances.emplace_back(i, distance);
     }
+
+    // debug_log("First centroid distance: " + std::to_string(centroid_distances[0].second));
 
     std::sort(centroid_distances.begin(), centroid_distances.end(),
               [](const auto &a, const auto &b) { return a.second < b.second; });
@@ -39,12 +51,28 @@ IVFIndex::search(const std::span<const float> &query, long k) const {
     for (std::int64_t i = 0; i < std::min(nprobe_, static_cast<std::int64_t>(centroid_distances.size())); i++) {
         std::int64_t centroid_index = centroid_distances[i].first;
 
+        // debug_log("Probing centroid index: " + std::to_string(centroid_index) + ", inv list size: " + std::to_string(inverted_lists_[centroid_index].size()));
+
         for (long id: inverted_lists_[centroid_index]) {
             const std::span<const float> &stored_vector = vector_store_->get_vector(id);
+
+            // debug_log("First stored vector id: " + std::to_string(id) + ", first 5 values: ");
+            // for (size_t j = 0; j < std::min(stored_vector.size(), static_cast<size_t>(5)); j++) {
+            //     debug_log("  " + std::to_string(stored_vector[j]));
+            // }
+
             float distance = compute_distance(distance_metric_, query, stored_vector);
+
+            // if (results.size() < 3) {
+            //     debug_log("Distance to vector id " + std::to_string(id) + ": " + std::to_string(distance));
+            // }
+
             results.emplace_back(id, distance);
         }
     }
+
+    // debug_log("Total candidates: " + std::to_string(results.size()));
+    // debug_log("=================================");
 
     std::sort(results.begin(), results.end(),
               [](const auto &a, const auto &b) { return a.second < b.second; });
@@ -52,6 +80,11 @@ IVFIndex::search(const std::span<const float> &query, long k) const {
     if (results.size() > k) {
         results.resize(k);
     }
+
+    // debug_log("Sending final results to Go, count: " + std::to_string(results.size()));
+    // for (size_t i = 0; i < results.size(); i++) {
+    //     debug_log("Final result " + std::to_string(i) + ": id=" + std::to_string(results[i].first) + ", distance=" + std::to_string(results[i].second));
+    // }
 
     return results;
 }

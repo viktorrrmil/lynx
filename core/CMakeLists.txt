@@ -12,6 +12,7 @@ add_library(lynx_core
         src/index_loader.cpp
         src/index_registry.cpp
         src/serialization.cpp
+        src/utils/logging.cpp
 )
 
 target_include_directories(lynx_core
@@ -34,6 +35,7 @@ add_executable(lynx
         include/lynx/in_memory_vector_store.h
         bindings/go/wrapper/in_memory_vector_store_wrapper.h
         bindings/go/wrapper/in_memory_vector_store_wrapper.cpp
+        include/lynx/utils/logging.h
 )
 
 target_link_libraries(lynx

@@ -9,6 +9,7 @@ package lynx
 import "C"
 import (
 	"fmt"
+	"runtime"
 	"unsafe"
 )
 
@@ -73,6 +74,8 @@ func (v *InMemoryVectorStore) AddVector(vector []float32) error {
 	cArray := (*C.float)(unsafe.Pointer(&vector[0]))
 	res := C.InMemoryVectorStore_add_vector(v.ptr, cArray, C.long(len(vector)))
 
+	runtime.KeepAlive(vector)
+
 	if !res {
 		return fmt.Errorf("failed to add vector to store")
 	}
@@ -103,8 +106,27 @@ func (v *InMemoryVectorStore) AddBatch(vectors [][]float32) error {
 		copy(flatVectors[i*dim:(i+1)*dim], vec)
 	}
 
-	cArray := (*C.float)(unsafe.Pointer(&flatVectors[0]))
+	// DEBUG LOG
+// 	fmt.Println("=== GO ADD_BATCH DEBUG ===")
+// 	fmt.Printf("batchSize: %d, dim: %d\n", batchSize, dim)
+// 	fmt.Printf("flatVectors length: %d\n", len(flatVectors))
+// 	fmt.Printf("First 5 values: %v\n", flatVectors[:5])
+//
+// 	sum := float32(0)
+// 	for i := 0; i < dim; i++ {
+// 		sum += flatVectors[i]
+// 	}
+// 	fmt.Printf("First vector sum: %f\n", sum)
+// 	fmt.Println("==========================")
 
+	// Using "runtime.KeepAlive(flatVectors)" also works
+
+    // Added pinning to make sure Go's GC do something weird with the memory while the engine is accessing it
+	var pinner runtime.Pinner
+	pinner.Pin(&flatVectors[0])
+	defer pinner.Unpin()
+
+	cArray := (*C.float)(unsafe.Pointer(&flatVectors[0]))
 	res := C.InMemoryVectorStore_add_batch(v.ptr, cArray, C.long(batchSize), C.long(dim))
 
 	if !res {
