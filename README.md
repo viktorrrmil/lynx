@@ -12,7 +12,7 @@ This is an experimental vector search engine built to explore different indexing
 
 - **Brute Force**: Baseline exhaustive search for accuracy comparison
 - **IVF (Inverted File Index)**: Efficient approximate nearest neighbor search using clustering
-- 
+
 ## Current Status
 
 🚧 **Prototype Phase** 🚧
