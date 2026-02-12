@@ -22,17 +22,20 @@ endif
 CORE_SOURCES = \
 	$(SRC_DIR)/bruteforce_index.cpp \
 	$(SRC_DIR)/ivf_index.cpp \
+	$(SRC_DIR)/in_memory_vector_store.cpp \
 	$(SRC_DIR)/serialization.cpp \
 	$(SRC_DIR)/index_loader.cpp \
 	$(SRC_DIR)/index_registry.cpp \
 	$(SRC_DIR)/utils/metric.cpp \
-	$(SRC_DIR)/utils/k_means/kmeans.cpp
-
-.PHONY: build-wrapper build-go test run clean
+	$(SRC_DIR)/utils/k_means/kmeans.cpp \
+	$(SRC_DIR)/utils/logging.cpp
 
 WRAPPER_SOURCES = \
-	$(BRUTEFORCE_WRAPPER_SOURCE) \
-	$(IVF_WRAPPER_SOURCE)
+	$(WRAPPER_DIR)/bruteforce_index_wrapper.cpp \
+	$(WRAPPER_DIR)/ivf_index_wrapper.cpp \
+	$(WRAPPER_DIR)/in_memory_vector_store_wrapper.cpp
+
+.PHONY: build-wrapper build-go test run clean
 
 build-wrapper:
 	@echo "Building C++ wrapper library for $(UNAME_S)..."
@@ -52,11 +55,11 @@ build-api: build-wrapper
 ifeq ($(UNAME_S),Darwin)
 	CGO_CFLAGS="-I$(INCLUDE_DIR)" \
 	CGO_LDFLAGS="-L$(LIB_DIR) -llynx_go -lstdc++ -Wl,-rpath,$(shell pwd)/$(LIB_DIR)" \
-	go build -o bin/lynx-api cmd/api/main.go
+	go build -o bin/lynx-api cmd/api/api.go cmd/api/embeddings.go cmd/api/handlers.go cmd/api/main.go cmd/api/models.go cmd/api/router.go
 else
 	CGO_CFLAGS="-I$(INCLUDE_DIR)" \
 	CGO_LDFLAGS="-L$(LIB_DIR) -llynx_go -lstdc++" \
-	go build -o bin/lynx-api cmd/api/main.go
+	go build -o bin/lynx-api cmd/api/api.go cmd/api/embeddings.go cmd/api/handlers.go cmd/api/main.go cmd/api/models.go cmd/api/router.go
 endif
 	@echo "✓ API built: bin/lynx-api"
 

@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <vector>
 
-float l2_distance(const std::vector<float> &vector_a, const std::vector<float> &vector_b) {
+float l2_distance(const std::span<const float> &vector_a, const std::span<const float> &vector_b) {
     if (vector_a.size() != vector_b.size()) {
         throw std::invalid_argument("Vector size mismatch");
     }
@@ -26,7 +26,7 @@ float l2_distance(const std::vector<float> &vector_a, const std::vector<float> &
     return std::sqrt(sum);
 }
 
-float cosine_distance(const std::vector<float> &vector_a, const std::vector<float> &vector_b) {
+float cosine_distance(const std::span<const float> &vector_a, const std::span<const float> &vector_b) {
     if (vector_a.size() != vector_b.size())
         throw std::invalid_argument("Vector size mismatch");
 
@@ -49,7 +49,7 @@ float cosine_distance(const std::vector<float> &vector_a, const std::vector<floa
     return 1.0f - similarity;
 }
 
-float compute_distance(DistanceMetric metric, const std::vector<float> &vector_a, const std::vector<float> &vector_b) {
+float compute_distance(DistanceMetric metric, const std::span<const float> &vector_a, const std::span<const float> &vector_b) {
     switch (metric) {
         case DistanceMetric::L2:
             return l2_distance(vector_a, vector_b);

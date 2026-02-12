@@ -1,52 +1,11 @@
 
 #include "../include/lynx/bruteforce_index.h"
-#include <fstream>
 #include <vector>
 
 enum class DistanceMetric : int64_t;
 class BruteForceIndex;
 
 extern "C" {
-    void* BruteForceIndex_new(long dimension, int metric) {
-        return new BruteForceIndex(dimension, static_cast<DistanceMetric>(metric));
-    }
-
-    bool BruteForceIndex_add_vector(void* index, long id, const float* vector_data, long vector_size) {
-        auto* bf_index = static_cast<BruteForceIndex*>(index);
-        std::vector<float> vec(vector_data, vector_data + vector_size);
-        return bf_index->add_vector(id, vec);
-    }
-
-    typedef struct {
-        float* data;
-        long length;
-    } VectorData;
-
-    VectorData* BruteForceIndex_get_vector(void* index, long id) {
-        auto* bf_index = static_cast<BruteForceIndex*>(index);
-        std::vector<float> vec;
-        if (!bf_index->get_vector(id, vec)) {
-            return nullptr;
-        }
-
-        auto* result = new VectorData();
-        result->length = vec.size();
-        result->data = new float[vec.size()];
-        std::copy(vec.begin(), vec.end(), result->data);
-        return result;
-    }
-
-    void BruteForceIndex_free_vector(VectorData* vector) {
-        if (vector) {
-            delete[] vector->data;
-            delete vector;
-        }
-    }
-
-    void BruteForceIndex_delete(void* index) {
-        delete static_cast<BruteForceIndex*>(index);
-    }
-
     typedef struct {
         long id;
         float distance;
@@ -57,11 +16,19 @@ extern "C" {
         long count;
     } SearchResults;
 
+    void* BruteForceIndex_new(int metric) {
+        return new BruteForceIndex(static_cast<DistanceMetric>(metric));
+    }
+
+    void BruteForceIndex_delete(void* index) {
+        delete static_cast<BruteForceIndex*>(index);
+    }
+
     SearchResults* BruteForceIndex_search(void* index, const float* query, long query_size, long k) {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
-        std::vector<float> query_vec(query, query + query_size);
 
-        auto cpp_results = bf_index->search(query_vec, k);
+        std::span<const float> query_span(query, query_size);
+        auto cpp_results = bf_index->search(query_span, k);
 
         auto* results = new SearchResults();
         results->count = cpp_results.size();
@@ -92,22 +59,17 @@ extern "C" {
         return bf_index->dimension();
     }
 
-    int BruteForceIndex_metric(void* index) {
+    int BruteForceIndex_distance_metric(void* index) {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
-        return static_cast<int>(bf_index->metric());
+        return static_cast<int>(bf_index->distance_metric());
     }
 
-    bool BruteForceIndex_save(void* index, const char* path) {
+    int BruteForceIndex_set_vector_store(void* index, void* store) {
         auto* bf_index = static_cast<BruteForceIndex*>(index);
-        return bf_index->save(std::string(path));
-    }
+        auto* vec_store = static_cast<InMemoryVectorStore*>(store);
 
-    bool BruteForceIndex_load(void* index, const char* path) {
-        auto* bf_index = static_cast<BruteForceIndex*>(index);
-        std::ifstream ifs(path, std::ios::binary);
-        if (!ifs.is_open()) {
-            return false;
-        }
-        return bf_index->load(ifs);
+        auto shared_store = std::shared_ptr<InMemoryVectorStore>(vec_store, [](InMemoryVectorStore*){});
+
+        return bf_index->set_vector_store(shared_store) ? 1 : 0;
     }
 }

@@ -26,8 +26,12 @@ services:
     container_name: lynx-frontend
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend/lynx-frontend:/app
+      - /app/node_modules
     depends_on:
       - api
     environment:
       - VITE_API_URL=http://localhost:8080
+      - CHOKIDAR_USEPOLLING=true
     restart: unless-stopped

@@ -22,17 +22,20 @@ extern "C" {
         long count;
     } IVFSearchResults;
 
-    void* IVFIndex_new(long dimension, int metric, long nlist, long nprobe);
+    void* IVFIndex_new(int metric, long nlist, long nprobe);
     void IVFIndex_delete(void* index);
-    bool IVFIndex_add_vector(void* index, long id, const float* vector_data, long vector_size);
+
     IVFSearchResults* IVFIndex_search(void* index, const float* query, long query_size, long k);
     void IVFIndex_free_search_results(IVFSearchResults* results);
+
     long IVFIndex_size(void* index);
-    bool IVFIndex_save(void* index, const char* path);
-    bool IVFIndex_load(void* index, const char* path);
     long IVFIndex_dimension(void* index);
-    int IVFIndex_metric(void* index);
+    int IVFIndex_distance_metric(void* index);
+
     bool IVFIndex_train(void* index, const float* training_data, long num_vectors, long vector_size, long n_iterations, float tolerance);
+
+    int IVFIndex_set_vector_store(void* index, void* store);
+    int IVFIndex_update_vectors(void* index);
 
 #ifdef __cplusplus
 }

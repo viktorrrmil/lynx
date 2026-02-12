@@ -5,21 +5,13 @@
 #include "ivf_index_wrapper.h"
 
 #include "../include/lynx/ivf_index.h"
-#include <fstream>
-#include <vector>
 
 class IVFIndex;
 enum class DistanceMetric : int64_t;
 
 extern "C" {
-    void* IVFIndex_new(long dimension, int metric, long nlist, long nprobe) {
-        return new IVFIndex(dimension, static_cast<DistanceMetric>(metric), nlist, nprobe);
-    }
-
-    bool IVFIndex_add_vector(void* index, long id, const float* vector_data, long vector_size) {
-        auto* ivf_index = static_cast<IVFIndex*>(index);
-        std::vector<float> vec(vector_data, vector_data + vector_size);
-        return ivf_index->add_vector(id, vec);
+    void* IVFIndex_new(int metric, long nlist, long nprobe) {
+        return new IVFIndex(static_cast<DistanceMetric>(metric), nlist, nprobe);
     }
 
     void IVFIndex_delete(void* index) {
@@ -61,23 +53,9 @@ extern "C" {
         return ivf_index->dimension();
     }
 
-    int IVFIndex_metric(void* index) {
+    int IVFIndex_distance_metric(void* index) {
         auto* ivf_index = static_cast<IVFIndex*>(index);
-        return static_cast<int>(ivf_index->metric());
-    }
-
-    bool IVFIndex_save(void* index, const char* path) {
-        auto* ivf_index = static_cast<IVFIndex*>(index);
-        return ivf_index->save(std::string(path));
-    }
-
-    bool IVFIndex_load(void* index, const char* path) {
-        auto* ivf_index = static_cast<IVFIndex*>(index);
-        std::ifstream in(path, std::ios::binary);
-        if (!in.is_open()) {
-            return false;
-        }
-        return ivf_index->load(in);
+        return static_cast<int>(ivf_index->distance_metric());
     }
 
     bool IVFIndex_train(void* index, const float* training_data, long num_vectors, long vector_size, long n_iterations, float tolerance) {
@@ -91,5 +69,19 @@ extern "C" {
         }
 
         return ivf_index->train(data, n_iterations, tolerance);
+    }
+
+    int IVFIndex_set_vector_store(void* index, void* store) {
+        auto* ivf_index = static_cast<IVFIndex*>(index);
+        auto* vec_store = static_cast<InMemoryVectorStore*>(store);
+
+        auto shared_store = std::shared_ptr<InMemoryVectorStore>(vec_store, [](InMemoryVectorStore*) {});
+
+        return ivf_index->set_vector_store(shared_store) ? 1 : 0;
+    }
+
+    int IVFIndex_update_vectors(void* index) {
+        auto* ivf_index = static_cast<IVFIndex*>(index);
+        return ivf_index->update_vectors() ? 1 : 0;
     }
 }

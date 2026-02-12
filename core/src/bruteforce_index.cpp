@@ -10,60 +10,25 @@
 #include <fstream>
 #include <iostream>
 
+#include "../include/lynx/in_memory_vector_store.h"
 #include "../include/lynx/serialization.h"
 
-BruteForceIndex::BruteForceIndex(long dimension, DistanceMetric metric)
-    : metric_(metric), dimension_(dimension)
-{
-    vectors_.reserve(1024);
-    ids_.reserve(1024);
-    id_set_.reserve(1024);
-}
-
-bool BruteForceIndex::add_vector(long id, const std::vector<float>& vector_data) {
-    if (vector_data.size() != dimension_) {
-        return false;
-    }
-
-    if (id < 0) {
-        return false;
-    }
-
-    if (id_set_.count(id)) return false;
-
-    id_set_.insert(id);
-    ids_.push_back(id);
-    vectors_.push_back(vector_data);
-
-    return true;
-}
-
-bool BruteForceIndex::get_vector(long id, std::vector<float>& out_vector) const {
-    for (size_t i = 0; i < ids_.size(); i++) {
-        if (ids_[i] == id) {
-            out_vector = vectors_[i];
-            return true;
-        }
-    }
-    return false;
-}
+BruteForceIndex::BruteForceIndex(DistanceMetric metric) : distance_metric_(metric) {}
 
 std::vector<std::pair<long, float>>
-BruteForceIndex::search(const std::vector<float>& query, long k) const {
-    auto start = std::chrono::steady_clock::now();
-
-    if (vectors_.empty() || query.empty() || query.size() != dimension_ || k <= 0) {
+BruteForceIndex::search(const std::span<const float>& query, long k) const {
+    if (!vector_store_ || vector_store_->data_.empty() || query.empty() ||
+        query.size() != vector_store_->dimension() || k <= 0) {
         return {};
-    }
+        }
 
     std::vector<std::pair<long, float>> temporary_results;
-    temporary_results.reserve(vectors_.size());
+    temporary_results.reserve(vector_store_->dimension());
 
-    for (size_t i = 0; i < vectors_.size(); i++) {
-        const std::vector<float>& stored_vector = vectors_[i];
-        float distance = compute_distance(metric_, query, stored_vector);
-
-        temporary_results.emplace_back(ids_[i], distance);
+    for (size_t i = 0; i < vector_store_->size(); i++) {
+        std::span<const float> stored_vector = vector_store_->get_vector(i);
+        float distance = compute_distance(distance_metric_, query, stored_vector);
+        temporary_results.emplace_back(i, distance);
     }
 
     if (k == 1) {
@@ -71,128 +36,23 @@ BruteForceIndex::search(const std::vector<float>& query, long k) const {
                                        [](auto &a, auto &b) {
                                            return a.second < b.second;
                                        });
-
-        auto end = std::chrono::steady_clock::now();
-        auto duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-        std::cout << "Search time: " << duration.count() << " us\n";
         return { *min_it };
-    } else {
-        std::sort(temporary_results.begin(), temporary_results.end(),
+    }
+
+    std::sort(temporary_results.begin(), temporary_results.end(),
               [](auto &a, auto &b) {
                   return a.second < b.second;
               });
 
-        std::vector<std::pair<long, float>> results;
-        results.reserve(k);
+    std::vector<std::pair<long, float>> results;
+    results.reserve(k);
 
-        size_t limit = std::min(static_cast<size_t>(k), temporary_results.size());
-        for (size_t i = 0; i < limit; i++) {
-            results.push_back(temporary_results[i]);
-        }
-        auto end = std::chrono::steady_clock::now();
-        auto duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-        std::cout << "Search time: " << duration.count() << " us\n";
-        return results;
-    }
-}
-
-size_t BruteForceIndex::size() const {
-    return vectors_.size();
-}
-
-bool BruteForceIndex::save(const std::string& path) const {
-    std::ofstream out(path, std::ios::binary);
-    if (!out.is_open()) {
-        return false;
+    size_t limit = std::min(static_cast<size_t>(k), temporary_results.size());
+    for (size_t i = 0; i < limit; i++) {
+        results.push_back(temporary_results[i]);
     }
 
-    // Magic
-    if (!write_magic(out)) {
-        return false;
-    }
-
-    // Version
-    if (!write_int64(out, VERSION)) {
-        return false;
-    }
-
-    // Index type
-    if (!write_int64(out, static_cast<int64_t>(type()))) {
-        return false;
-    }
-
-    // Metric
-    if (!write_int64(out, static_cast<int64_t>(metric_))) {
-        return false;
-    }
-
-    // Dimension
-    if (!write_int64(out, dimension_)) {
-        return false;
-    }
-
-    // Vector count
-    if (!write_int64(out, static_cast<int64_t>(vectors_.size()))) {
-        return false;
-    }
-
-    for (size_t i = 0; i < ids_.size(); i++) {
-        if (!write_int64(out, ids_[i])) {
-            return false;
-        }
-
-        if (!write_float_vector(out, vectors_[i])) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool BruteForceIndex::load(std::ifstream &in) {
-    if (dimension_ <= 0) {
-        return false;
-    }
-
-    int64_t vector_count;
-    if (!read_int64(in, vector_count)) {
-        return false;
-    }
-    if (vector_count < 0) {
-        return false;
-    }
-
-    vectors_.clear();
-    ids_.clear();
-    id_set_.clear();
-
-    for (int64_t i = 0; i < vector_count; i++) {
-        int64_t temp_id;
-        if (!read_int64(in, temp_id)) {
-            return false;
-        }
-
-        if (id_set_.count(temp_id)) {
-            return false;
-        }
-
-        std::vector<float> vector_data;
-        if (!read_float_vector(in, vector_data, dimension_)) {
-            return false;
-        }
-
-        long id = temp_id;
-
-        ids_.push_back(id);
-        vectors_.push_back(vector_data);
-        id_set_.insert(id);
-    }
-
-    return true;
+    return results;
 }
 
 IndexType BruteForceIndex::type() const {
@@ -201,4 +61,22 @@ IndexType BruteForceIndex::type() const {
 
 void BruteForceIndex_free_vector(float* vector) {
     delete[] vector;
+}
+
+bool BruteForceIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
+    if (store) {
+        vector_store_ = store;
+        return true;
+    }
+    return false;
+}
+
+size_t BruteForceIndex::size() const {
+    if (!vector_store_) return 0;
+    return static_cast<long>(vector_store_->size());
+}
+
+int BruteForceIndex::dimension() const {
+    if (!vector_store_) return 0;
+    return vector_store_->dimension();
 }

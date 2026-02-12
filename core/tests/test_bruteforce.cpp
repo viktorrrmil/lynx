@@ -3,7 +3,7 @@
 //
 
 #include "gtest/gtest.h"
-#include "lynx/bruteforce_index.h"
+#include "../include/lynx/bruteforce_index.h"
 #include "lynx/utils/metric.h"
 
 // Add and search returns the same vector
