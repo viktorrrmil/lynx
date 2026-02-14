@@ -235,3 +235,84 @@ func (api *API) getInfo(c *gin.Context) {
 	api.lock.RUnlock()
 	c.IndentedJSON(200, info)
 }
+
+// Vector Cache handlers
+
+// saveVectorCache saves all vectors from the vector store to the cache file
+func (api *API) saveVectorCache(c *gin.Context) {
+	api.lock.RLock()
+
+	vectors, passed := api.vectorStore.GetAllVectors()
+	if !passed {
+		c.JSON(500, gin.H{
+			"error": "Failed to retrieve vectors from store for caching",
+		})
+		api.lock.RUnlock()
+		return
+	}
+
+	err := api.vectorCache.Save(vectors)
+	api.lock.RUnlock()
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to save vector cache: " + err.Error(),
+		})
+		return
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"message": "Vector cache saved successfully",
+	})
+}
+
+// loadVectorCache loads vectors from the cache file and adds them to the vector store and updates the IVF index.
+func (api *API) loadVectorCache(c *gin.Context) {
+	api.lock.Lock()
+	defer api.lock.Unlock()
+
+	vectors, err := api.vectorCache.Load()
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to load vector cache: " + err.Error(),
+		})
+		return
+	}
+
+	err = api.vectorStore.AddBatch(vectors)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to add loaded vectors to store: " + err.Error(),
+		})
+		return
+	}
+
+	err = api.ivfIndex.UpdateVectors()
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to update IVF index with loaded vectors: " + err.Error(),
+		})
+		return
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"message": "Vector cache loaded successfully",
+		"count":   len(vectors),
+	})
+}
+
+// getVectorCacheInfo returns the number of vectors and their dimensions in the cache file
+func (api *API) getVectorCacheInfo(c *gin.Context) {
+	count, dims, err := api.vectorCache.GetInfo()
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to get vector cache info: " + err.Error(),
+		})
+		return
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"count":     count,
+		"dimension": dims,
+	})
+}

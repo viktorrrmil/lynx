@@ -37,6 +37,9 @@ RUN CGO_ENABLED=1 \
 FROM --platform=linux/amd64 alpine:latest
 RUN apk add --no-cache libstdc++
 
+WORKDIR /app
+RUN mkdir -p /app/data
+
 COPY --from=builder /lynx-api /lynx-api
 COPY --from=builder /app/lib/liblynx_go.so /lib/
 

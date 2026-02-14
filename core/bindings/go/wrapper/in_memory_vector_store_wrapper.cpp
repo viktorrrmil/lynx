@@ -50,6 +50,28 @@ extern "C" {
         delete[] vector;
     }
 
+    float* InMemoryVectorStore_get_all_vectors(void* store, long* out_num_vectors, long* out_vector_size) {
+        auto* vec_store = static_cast<InMemoryVectorStore*>(store);
+        std::vector<std::vector<float>> all_vectors = vec_store->get_all_vectors();
+
+        *out_num_vectors = static_cast<long>(all_vectors.size());
+        if (*out_num_vectors == 0) {
+            *out_vector_size = 0;
+            return nullptr;
+        }
+
+        *out_vector_size = static_cast<long>(all_vectors[0].size());
+        auto* result = new float[*out_num_vectors * *out_vector_size];
+
+        for (long i = 0; i < *out_num_vectors; i++) {
+            for (long j = 0; j < *out_vector_size; j++) {
+                result[i * *out_vector_size + j] = all_vectors[i][j];
+            }
+        }
+
+        return result;
+    }
+
     bool InMemoryVectorStore_add_vector(void* store, const float* vector_data, long vector_size) {
         auto* vec_store = static_cast<InMemoryVectorStore*>(store);
         std::vector<float> vec(vector_data, vector_data + vector_size);
@@ -59,26 +81,27 @@ extern "C" {
     bool InMemoryVectorStore_add_batch(void* store, const float* vectors_data, long num_vectors, long vector_size) {
         auto* vec_store = static_cast<InMemoryVectorStore*>(store);
 
-        debug_log("=== C++ ADD_BATCH CALLED ===");
-        debug_log("Number of vectors: " + std::to_string(num_vectors));
-        debug_log("Vector size: " + std::to_string(vector_size));
-
-        if (vectors_data != nullptr && num_vectors > 0 && vector_size > 0) {
-            debug_log("First vector values:");
-            for (int i = 0; i < std::min(5L, vector_size); i++) {
-                debug_log("Value " + std::to_string(i) + ": " + std::to_string(vectors_data[i]));
-            }
-
-            // Check if it's all zeros
-            float sum = 0.0f;
-            for (long i = 0; i < vector_size; i++) {
-                sum += std::abs(vectors_data[i]);
-            }
-            debug_log("Sum: " + std::to_string(sum));
-        } else {
-            debug_log("Invalid input data for add_batch");
-        }
-        debug_log("==============================");
+        // DEBUG LOG
+        // debug_log("=== C++ ADD_BATCH CALLED ===");
+        // debug_log("Number of vectors: " + std::to_string(num_vectors));
+        // debug_log("Vector size: " + std::to_string(vector_size));
+        //
+        // if (vectors_data != nullptr && num_vectors > 0 && vector_size > 0) {
+        //     debug_log("First vector values:");
+        //     for (int i = 0; i < std::min(5L, vector_size); i++) {
+        //         debug_log("Value " + std::to_string(i) + ": " + std::to_string(vectors_data[i]));
+        //     }
+        //
+        //     // Check if it's all zeros
+        //     float sum = 0.0f;
+        //     for (long i = 0; i < vector_size; i++) {
+        //         sum += std::abs(vectors_data[i]);
+        //     }
+        //     debug_log("Sum: " + std::to_string(sum));
+        // } else {
+        //     debug_log("Invalid input data for add_batch");
+        // }
+        // debug_log("==============================");
 
         std::vector<std::vector<float>> vectors;
         vectors.reserve(num_vectors);

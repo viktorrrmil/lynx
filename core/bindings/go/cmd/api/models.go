@@ -1,21 +1,22 @@
 package main
 
 import (
+	"lynx/data_store"
 	"lynx/lynx"
 	"sync"
 )
 
 type API struct {
-	bfIndex  *lynx.BruteForceIndex
-	ivfIndex *lynx.IVFIndex
+	bfIndex    *lynx.BruteForceIndex
+	bfMetadata map[int64]string // id -> original text
+	bfNextID   int64
 
-	bfMetadata  map[int64]string // id -> original text
+	ivfIndex    *lynx.IVFIndex
 	ivfMetadata map[int64]string // id -> original text
-
-	bfNextID  int64
-	ivfNextID int64
+	ivfNextID   int64
 
 	vectorStore *lynx.InMemoryVectorStore
+	vectorCache *data_store.VectorCache
 
 	lock sync.RWMutex
 }

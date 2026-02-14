@@ -29,19 +29,24 @@ std::span<const float> InMemoryVectorStore::get_vector(std::size_t id) const {
    return data_[id];
 }
 
+std::vector<std::vector<float>> InMemoryVectorStore::get_all_vectors() const {
+    return data_;
+}
+
 bool InMemoryVectorStore::add_vector(const std::vector<float> &vector_data) {
     if (!data_.empty() && dimension() != vector_data.size()) {
         return false;
     }
 
-    debug_log("=== ADD_VECTOR DEBUG ===");
-    debug_log("Vector size: " + std::to_string(vector_data.size()));
-
-    std::string values = "First 5 values: ";
-    for (size_t i = 0; i < std::min(size_t(5), vector_data.size()); i++) {
-        values += std::to_string(vector_data[i]) + " ";
-    }
-    debug_log(values);
+    // DEBUG LOG
+    // debug_log("=== ADD_VECTOR DEBUG ===");
+    // debug_log("Vector size: " + std::to_string(vector_data.size()));
+    //
+    // std::string values = "First 5 values: ";
+    // for (size_t i = 0; i < std::min(size_t(5), vector_data.size()); i++) {
+    //     values += std::to_string(vector_data[i]) + " ";
+    // }
+    // debug_log(values);
 
     data_.push_back(vector_data);
     return true;

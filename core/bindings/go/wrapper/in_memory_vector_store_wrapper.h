@@ -17,6 +17,8 @@ extern "C" {
     int InMemoryVectorStore_dimension(void* store);
 
     float* InMemoryVectorStore_get_vector(void* store, long id, long* out_size);
+    float* InMemoryVectorStore_get_all_vectors(void* store, long* out_num_vectors, long* out_vector_size);
+
     void InMemoryVectorStore_free_vector(float* vector);
 
     bool InMemoryVectorStore_add_vector(void* store, const float* vector_data, long vector_size);

@@ -62,6 +62,33 @@ func (v *InMemoryVectorStore) GetVector(id int64) ([]float32, bool) {
 	return vector, true
 }
 
+func (v *InMemoryVectorStore) GetAllVectors() ([][]float32, bool) {
+	if v.ptr == nil {
+		return nil, false
+	}
+
+	var numVectors C.long
+	var vectorSize C.long
+	dataPtr := C.InMemoryVectorStore_get_all_vectors(v.ptr, &numVectors, &vectorSize)
+
+	if dataPtr == nil || numVectors == 0 {
+		return nil, false
+	}
+
+	defer C.free(unsafe.Pointer(dataPtr))
+
+	totalSize := int(numVectors) * int(vectorSize)
+	flatData := (*[1 << 30]float32)(unsafe.Pointer(dataPtr))[:totalSize:totalSize]
+
+	vectors := make([][]float32, numVectors)
+	for i := 0; i < int(numVectors); i++ {
+		vectors[i] = make([]float32, vectorSize)
+		copy(vectors[i], flatData[i*int(vectorSize):(i+1)*int(vectorSize)])
+	}
+
+	return vectors, true
+}
+
 func (v *InMemoryVectorStore) AddVector(vector []float32) error {
 	if v.ptr == nil {
 		return fmt.Errorf("vector store is nil")
@@ -107,21 +134,21 @@ func (v *InMemoryVectorStore) AddBatch(vectors [][]float32) error {
 	}
 
 	// DEBUG LOG
-// 	fmt.Println("=== GO ADD_BATCH DEBUG ===")
-// 	fmt.Printf("batchSize: %d, dim: %d\n", batchSize, dim)
-// 	fmt.Printf("flatVectors length: %d\n", len(flatVectors))
-// 	fmt.Printf("First 5 values: %v\n", flatVectors[:5])
-//
-// 	sum := float32(0)
-// 	for i := 0; i < dim; i++ {
-// 		sum += flatVectors[i]
-// 	}
-// 	fmt.Printf("First vector sum: %f\n", sum)
-// 	fmt.Println("==========================")
+	// 	fmt.Println("=== GO ADD_BATCH DEBUG ===")
+	// 	fmt.Printf("batchSize: %d, dim: %d\n", batchSize, dim)
+	// 	fmt.Printf("flatVectors length: %d\n", len(flatVectors))
+	// 	fmt.Printf("First 5 values: %v\n", flatVectors[:5])
+	//
+	// 	sum := float32(0)
+	// 	for i := 0; i < dim; i++ {
+	// 		sum += flatVectors[i]
+	// 	}
+	// 	fmt.Printf("First vector sum: %f\n", sum)
+	// 	fmt.Println("==========================")
 
 	// Using "runtime.KeepAlive(flatVectors)" also works
 
-    // Added pinning to make sure Go's GC do something weird with the memory while the engine is accessing it
+	// Added pinning to make sure Go's GC do something weird with the memory while the engine is accessing it
 	var pinner runtime.Pinner
 	pinner.Pin(&flatVectors[0])
 	defer pinner.Unpin()

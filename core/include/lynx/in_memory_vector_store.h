@@ -19,6 +19,8 @@ public:
 
     std::span<const float> get_vector(std::size_t id) const override;
 
+    std::vector<std::vector<float>> get_all_vectors() const;
+
     bool add_vector(const std::vector<float>& vector_data);
     bool add_batch(const std::vector<std::vector<float>>& vectors);
 };

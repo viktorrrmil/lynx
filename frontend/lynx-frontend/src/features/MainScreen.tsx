@@ -3,6 +3,7 @@ import type {IndexResults} from "../types/types.ts";
 import ResultsColumn from "./results/ResultColumn.tsx";
 import UploadSection from "./UploadSection.tsx";
 import InfoScreen from "./InfoScreen.tsx";
+import VectorCacheSection from "./VectorCacheSection.tsx";
 
 const MainScreen = () => {
     const [loading, setLoading] = useState(false);
@@ -57,14 +58,18 @@ const MainScreen = () => {
         <div className="min-h-screen bg-white">
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
-                <div className="mb-12">
-                    <h1 className="text-2xl font-light tracking-tight text-gray-900">
-                        Lynx - Vector Search Engine
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Compare BruteForce vs IVF index performance
-                    </p>
+                <div className="flex w-full justify-between mb-12 items-stretch gap-4">
+                    <div className="">
+                        <h1 className="text-2xl font-light tracking-tight text-gray-900">
+                            Lynx - Vector Search Engine
+                        </h1>
+                        <p className="text-sm text-gray-500 mt-2">
+                            Compare BruteForce vs IVF index performance
+                        </p>
+                    </div>
+                    <VectorCacheSection />
                 </div>
+
 
                 {/* Upload Section */}
                 <div className="flex w-full justify-center mb-12 items-stretch gap-4">
