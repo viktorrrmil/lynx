@@ -14,14 +14,6 @@ func main() {
 	api := NewAPI(384, lynx.COSINE)
 	defer api.bfIndex.Delete()
 
-	if api.bfIndex.SetVectorStore(api.vectorStore) {
-		println("InMemoryVectorStore is now connected to BruteForceIndex")
-	}
-
-	if api.ivfIndex.SetVectorStore(api.vectorStore) {
-		println("InMemoryVectorStore is now connected to IVFIndex")
-	}
-
 	router := setupRouter(api)
 
 	err := router.Run("0.0.0.0:8080")

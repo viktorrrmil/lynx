@@ -18,6 +18,13 @@ func (store *PostgresVectorStore) Db() *sql.DB {
 	return store.db
 }
 
+func (store *PostgresVectorStore) Close() error {
+	if store.db != nil {
+		return store.db.Close()
+	}
+	return nil
+}
+
 func connectWithRetry(connStr string, maxRetries int) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
@@ -33,6 +40,14 @@ func connectWithRetry(connStr string, maxRetries int) (*sql.DB, error) {
 		err = db.Ping()
 		if err == nil {
 			log.Println("Successfully connected to database!")
+			log.Println("Row count in vectors table:")
+			var count int64
+			err = db.QueryRow(`SELECT COUNT(*) FROM vectors`).Scan(&count)
+			if err != nil {
+				log.Printf("Failed to count rows in vectors table: %v", err)
+			} else {
+				log.Println(count)
+			}
 			return db, nil
 		}
 
@@ -48,7 +63,6 @@ func NewPostgresVectorStore(connStr string) (*PostgresVectorStore, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	return &PostgresVectorStore{db: db}, nil
 }

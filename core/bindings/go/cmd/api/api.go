@@ -22,10 +22,18 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 
 	vectorStore := lynx.NewInMemoryVectorStore()
 
-	vectors, _ := pgStore.GetAllVectors()
-	for _, vec := range vectors {
-		vectorStore.AddVector(vec)
+	vectors, err := pgStore.GetAllVectors()
+	if err != nil {
+		fmt.Printf("[ERROR] Failed to get vectors from Postgres: %v\n", err)
 	}
+	for _, vec := range vectors {
+		err := vectorStore.AddVector(vec)
+		if err != nil {
+			fmt.Printf("[ERROR] Failed to add vector from Postgres to in-memory store: %v\n", err)
+		}
+	}
+
+	fmt.Printf("Vector store initialized with %d vectors from Postgres\n", vectorStore.Size())
 
 	bfIndex := lynx.NewBruteforceIndex(metric)
 	bfIndex.SetVectorStore(vectorStore)
