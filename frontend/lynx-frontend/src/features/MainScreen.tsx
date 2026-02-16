@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import {useState} from 'react';
 import type {IndexResults} from "../types/types.ts";
 import ResultsColumn from "./results/ResultColumn.tsx";
 import UploadSection from "./UploadSection.tsx";
@@ -11,33 +11,54 @@ const MainScreen = () => {
     const [bfResults, setBfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [ivfResults, setIvfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [k, setK] = useState(10);
+    const [bfActive, setBfActive] = useState(true);
+    const [ivfActive, setIvfActive] = useState(true);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
+        if (!bfActive && !ivfActive) return; // Don't search if no indexes are active
 
         setLoading(true);
 
         try {
-            // Search both indexes in parallel
-            const [bfResponse, ivfResponse] = await Promise.all([
-                fetch('http://localhost:8080/bf_search', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query, top_k: k}),
-                }),
-                fetch('http://localhost:8080/ivf_search', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({query, top_k: k}),
-                })
-            ]);
+            const promises = [];
 
-            if (bfResponse.ok) {
+            // Only add fetch promises for active indexes
+            if (bfActive) {
+                promises.push(
+                    fetch('http://localhost:8080/bf_search', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({query, top_k: k}),
+                    })
+                );
+            } else {
+                promises.push(null);
+            }
+
+            if (ivfActive) {
+                promises.push(
+                    fetch('http://localhost:8080/ivf_search', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({query, top_k: k}),
+                    })
+                );
+            } else {
+                promises.push(null);
+            }
+
+            const [bfResponse, ivfResponse] = await Promise.all(promises);
+
+            if (bfResponse && bfResponse.ok) {
                 const data = await bfResponse.json();
                 setBfResults({
                     results: data.results || [],
                     searchTime: data.search_time_ms
                 });
+            } else if (!bfActive) {
+                // Clear results if index is not active
+                setBfResults({results: [], searchTime: null});
             }
 
             if (ivfResponse && ivfResponse.ok) {
@@ -46,6 +67,9 @@ const MainScreen = () => {
                     results: data.results || [],
                     searchTime: data.search_time_ms
                 });
+            } else if (!ivfActive) {
+                // Clear results if index is not active
+                setIvfResults({results: [], searchTime: null});
             }
         } catch (error) {
             console.error('Search error:', error);
@@ -84,9 +108,37 @@ const MainScreen = () => {
 
                 {/* Search Section */}
                 <div>
-                    <h2 className="text-sm font-medium text-gray-900 mb-4">
-                        Search Both Indexes
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-sm font-medium text-gray-900">
+                            {bfActive && ivfActive ? 'Search Both Indexes' :
+                             bfActive ? 'Search BruteForce Index' :
+                             ivfActive ? 'Search IVF Index' : 'Search Indexes'}
+                        </h2>
+
+                        {/* Index Toggle Buttons */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setBfActive(!bfActive)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                    bfActive
+                                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                            >
+                                BruteForce {bfActive ? '✓' : '○'}
+                            </button>
+                            <button
+                                onClick={() => setIvfActive(!ivfActive)}
+                                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                    ivfActive
+                                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                            >
+                                IVF {ivfActive ? '✓' : '○'}
+                            </button>
+                        </div>
+                    </div>
                     <div className="space-y-6">
                         <div className="flex gap-2">
                             <input
@@ -108,12 +160,15 @@ const MainScreen = () => {
                             />
                             <button
                                 onClick={handleSearch}
-                                disabled={loading}
+                                disabled={loading || (!bfActive && !ivfActive)}
                                 className="px-6 py-2 text-sm font-medium text-white bg-gray-900
                                      rounded hover:bg-gray-800 disabled:bg-gray-300
                                      disabled:cursor-not-allowed transition-colors"
                             >
-                                {loading ? 'Searching...' : 'Search Both'}
+                                {loading ? 'Searching...' :
+                                 !bfActive && !ivfActive ? 'Select Index' :
+                                 bfActive && ivfActive ? 'Search Both' :
+                                 bfActive ? 'Search BF' : 'Search IVF'}
                             </button>
                         </div>
 
@@ -143,18 +198,22 @@ const MainScreen = () => {
 
                         {/* Side by Side Results */}
                         <div className="flex gap-6">
-                            <ResultsColumn
-                                query={query}
-                                title="BruteForce Index"
-                                results={bfResults.results}
-                                searchTime={bfResults.searchTime}
-                            />
-                            <ResultsColumn
-                                query={query}
-                                title="IVF Index"
-                                results={ivfResults.results}
-                                searchTime={ivfResults.searchTime}
-                            />
+                            {bfActive && (
+                                <ResultsColumn
+                                    query={query}
+                                    title="BruteForce Index"
+                                    results={bfResults.results}
+                                    searchTime={bfResults.searchTime}
+                                />
+                            )}
+                            {ivfActive && (
+                                <ResultsColumn
+                                    query={query}
+                                    title="IVF Index"
+                                    results={ivfResults.results}
+                                    searchTime={ivfResults.searchTime}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

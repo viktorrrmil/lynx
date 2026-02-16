@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -53,10 +52,16 @@ func (api *API) bfSearch(c *gin.Context) {
 
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
+		var text string
+		api.pgStore.Db().QueryRow(
+			"SELECT text FROM vectors WHERE id = $1",
+			result.ID,
+		).Scan(&text)
+
 		enrichedResults[i] = map[string]interface{}{
 			"id":       result.ID,
 			"distance": result.Distance,
-			"text":     api.bfMetadata[result.ID],
+			"text":     text,
 		}
 	}
 
@@ -87,18 +92,6 @@ func (api *API) ivfSearch(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("=== QUERY EMBEDDING DEBUG ===")
-	fmt.Printf("Query text: %s\n", request.Query)
-	fmt.Printf("Embedding length: %d\n", len(embeddedQuery))
-	fmt.Printf("First 5 values: %v\n", embeddedQuery[:5])
-
-	sum := float32(0)
-	for _, v := range embeddedQuery {
-		sum += v * v
-	}
-	fmt.Printf("L2 norm squared: %f\n", sum)
-	fmt.Println("============================")
-
 	var start = time.Now()
 
 	results, err := api.ivfIndex.Search(embeddedQuery, request.TopK)
@@ -108,18 +101,20 @@ func (api *API) ivfSearch(c *gin.Context) {
 		})
 	}
 
-	for i, result := range results {
-		fmt.Printf("Result %d: ID=%d, Distance=%f\n", i, result.ID, result.Distance)
-	}
-
 	var searchTime = time.Since(start)
 
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
+		var text string
+		api.pgStore.Db().QueryRow(
+			"SELECT text FROM vectors WHERE id = $1",
+			result.ID,
+		).Scan(&text)
+
 		enrichedResults[i] = map[string]interface{}{
 			"id":       result.ID,
 			"distance": result.Distance,
-			"text":     api.ivfMetadata[result.ID],
+			"text":     text,
 		}
 	}
 
@@ -148,8 +143,16 @@ func (api *API) addToVectorStore(c *gin.Context) {
 		return
 	}
 
-	api.lock.Lock() // Need write lock!
+	api.lock.Lock()
 	defer api.lock.Unlock()
+
+	id, err := api.pgStore.AddVector(request.Text, embeddedVector)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Failed to add vector to Postgres store: " + err.Error(),
+		})
+		return
+	}
 
 	err = api.vectorStore.AddVector(embeddedVector)
 	if err != nil {
@@ -159,15 +162,10 @@ func (api *API) addToVectorStore(c *gin.Context) {
 		return
 	}
 
-	currentID := api.vectorStore.Size() - 1
-	api.bfMetadata[currentID] = request.Text
-
-	println("Vector store size after add:", api.vectorStore.Size())
-
 	c.IndentedJSON(200, gin.H{
 		"message": "Vector added successfully",
-		"id":      currentID,
-		"added":   embeddedVector,
+		"count":   1,
+		"id":      id,
 	})
 }
 
@@ -188,17 +186,25 @@ func (api *API) addBatchToVectorStore(c *gin.Context) {
 		return
 	}
 
-	api.lock.Lock() // Need write lock!
+	api.lock.Lock()
 	defer api.lock.Unlock()
 
-	startID := api.vectorStore.Size()
-
-	err = api.vectorStore.AddBatch(embeddedTextBatch)
+	ids, err := api.pgStore.AddBatch(request.Batch, embeddedTextBatch)
 	if err != nil {
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": "Failed to add batch to Postgres store: " + err.Error(),
 		})
 		return
+	}
+
+	for _, emb := range embeddedTextBatch {
+		err := api.vectorStore.AddVector(emb)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": "Could not add vector to store: " + err.Error(),
+			})
+			return
+		}
 	}
 
 	err = api.ivfIndex.UpdateVectors()
@@ -211,18 +217,10 @@ func (api *API) addBatchToVectorStore(c *gin.Context) {
 		return
 	}
 
-	for i, text := range request.Batch {
-		api.bfMetadata[startID+int64(i)] = text
-		api.ivfMetadata[startID+int64(i)] = text
-	}
-
-	println("Vector store size after add:", api.vectorStore.Size())
-
 	c.IndentedJSON(200, gin.H{
-		"message":  "Batch vectors added successfully",
-		"count":    len(embeddedTextBatch),
-		"start_id": startID,
-		"added":    embeddedTextBatch,
+		"message": "Batch vectors added successfully",
+		"count":   len(embeddedTextBatch),
+		"ids":     ids,
 	})
 }
 
