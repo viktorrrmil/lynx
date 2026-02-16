@@ -3,20 +3,23 @@ package main
 import (
 	"lynx/data_store"
 	"lynx/lynx"
+	"lynx/storage"
 	"sync"
 )
 
 type API struct {
-	bfIndex    *lynx.BruteForceIndex
-	bfMetadata map[int64]string // id -> original text
-	bfNextID   int64
+	bfIndex  *lynx.BruteForceIndex
+	ivfIndex *lynx.IVFIndex
 
-	ivfIndex    *lynx.IVFIndex
-	ivfMetadata map[int64]string // id -> original text
-	ivfNextID   int64
-
+	// C++ vector store wrapper
 	vectorStore *lynx.InMemoryVectorStore
+
+	// Binary file for persisting embeddings
+	// NOTE: It says "vector cache" but it's really just a file on disk that we can load/save to persist the in-memory vector store across restarts
 	vectorCache *data_store.VectorCache
+
+	// Postgres vector store
+	pgStore *storage.PostgresVectorStore
 
 	lock sync.RWMutex
 }

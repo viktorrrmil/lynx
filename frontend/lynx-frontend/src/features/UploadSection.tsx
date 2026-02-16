@@ -38,7 +38,7 @@ const UploadSection = ({
 
             if (bfResponse.ok) {
                 const data = await bfResponse.json();
-                setMessage(`✓ Added ${data.added.length} items to both indexes!`);
+                setMessage(`✓ Added ${data.count} ${data.count > 1 ? "items" : "item"} to both indexes!`);
             } else {
                 const error = await bfResponse.text();
                 setMessage(`Error: ${error}`);
