@@ -40,7 +40,7 @@ WRAPPER_SOURCES = \
 build-wrapper:
 	@echo "Building C++ wrapper library for $(UNAME_S)..."
 	mkdir -p $(LIB_DIR)
-	g++ -std=c++20 -shared -fPIC \
+	g++ -std=c++20 -shared -fPIC -fopenmp \
 		-I$(INCLUDE_DIR) \
 		-o $(LIB_DIR)/$(LIB_NAME) \
 		$(WRAPPER_SOURCES) \

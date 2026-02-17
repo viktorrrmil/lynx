@@ -37,5 +37,8 @@ func setupRouter(api *API) *gin.Engine {
 	// Index status endpoint
 	router.GET("/index_status", api.getIndexStatus)
 
+	// Benchmark
+	router.POST("/benchmark", api.runBenchmark)
+
 	return router
 }

@@ -362,23 +362,6 @@ func (api *API) configureIVF(c *gin.Context) {
 	})
 }
 
-/**
-
-interface IndexStatus {
-    bf: {
-        initialized: boolean;
-        vectorCount: number;
-    };
-    ivf: {
-        initialized: boolean;
-        vectorCount: number;
-        nlist: number;
-        nprobe: number;
-    };
-}
-
-*/
-
 func (api *API) getIndexStatus(c *gin.Context) {
 	bfInitialized := api.bfIndex.IsInitialized()
 	bfVectorCount := api.bfIndex.Size()
@@ -400,5 +383,62 @@ func (api *API) getIndexStatus(c *gin.Context) {
 			"nprobe":      ivfNProbe,
 		},
 	})
+}
 
+func (api *API) runBenchmark(c *gin.Context) {
+	var request BenchmarkRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	var results []metrics.BenchmarkResult
+
+	for _, query := range request.Queries {
+		embeddedQuery, err := getEmbeddings(query)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": "Failed to get embeddings for query: " + err.Error(),
+			})
+			return
+		}
+
+		startIVF := time.Now()
+		ivfResults, err := api.ivfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": "IVF search failed: " + err.Error(),
+			})
+			return
+		}
+		ivfTime := time.Since(startIVF)
+
+		startBF := time.Now()
+		bfResults, err := api.bfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": "Brute-force search failed: " + err.Error(),
+			})
+			return
+		}
+		bfTime := time.Since(startBF)
+
+		recall := metrics.CalculateRecall(bfResults, ivfResults, int64(request.TopK))
+
+		results = append(results, metrics.BenchmarkResult{
+			Query:     query,
+			RecallAtK: recall,
+			SpeedupX:  float64(bfTime) / float64(ivfTime),
+			IVFTimeMs: float64(ivfTime.Microseconds() / 1000),
+			BFTimeMs:  float64(bfTime.Microseconds() / 1000),
+		})
+	}
+
+	summary := metrics.CalculateSummary(results)
+
+	c.IndentedJSON(200, gin.H{
+		"summary": summary,
+	})
 }

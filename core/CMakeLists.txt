@@ -4,6 +4,14 @@ project(lynx LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable OpenMP for parallel k-means
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP found, enabling parallel k-means")
+else()
+    message(STATUS "OpenMP not found, using single-threaded k-means")
+endif()
+
 enable_testing()
 
 add_library(lynx_core
@@ -40,6 +48,7 @@ add_executable(lynx
 
 target_link_libraries(lynx
         lynx_core
+        $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
 )
 
 include(FetchContent)

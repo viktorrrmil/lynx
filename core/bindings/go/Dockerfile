@@ -1,6 +1,6 @@
 FROM --platform=linux/amd64 golang:alpine AS builder
 
-RUN apk add --no-cache gcc g++ musl-dev make
+RUN apk add --no-cache gcc g++ musl-dev make libgomp
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY bindings/go/ /app/
 
 RUN mkdir -p /app/lib
 
-RUN g++ -std=c++20 -shared -fPIC \
+RUN g++ -std=c++20 -shared -fPIC -fopenmp -O3 \
     -I/app/include \
     -o /app/lib/liblynx_go.so \
     /app/wrapper/bruteforce_index_wrapper.cpp \
@@ -35,7 +35,7 @@ RUN CGO_ENABLED=1 \
     go build -o /lynx-api ./cmd/api
 
 FROM --platform=linux/amd64 alpine:latest
-RUN apk add --no-cache libstdc++
+RUN apk add --no-cache libstdc++ libgomp
 
 WORKDIR /app
 RUN mkdir -p /app/data

@@ -79,7 +79,7 @@ int IVFIndex_is_initialized(void *index) {
 }
 
 int IVFIndex_train(void *index, const float *training_data, long num_vectors, long vector_size, long n_iterations,
-                    float tolerance) {
+                    float tolerance, int populate_inverted_lists) {
     auto *ivf_index = static_cast<IVFIndex *>(index);
     std::vector<std::vector<float> > data;
     data.reserve(num_vectors);
@@ -89,7 +89,7 @@ int IVFIndex_train(void *index, const float *training_data, long num_vectors, lo
         data.push_back(vec);
     }
 
-    return ivf_index->train(data, n_iterations, tolerance) ? 1 : 0;
+    return ivf_index->train(data, n_iterations, tolerance, populate_inverted_lists != 0) ? 1 : 0;
 }
 
 int IVFIndex_set_vector_store(void *index, void *store) {

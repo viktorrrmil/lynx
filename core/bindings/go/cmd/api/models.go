@@ -62,4 +62,10 @@ type (
 		Nlist  int64 `json:"nlist"`
 		Nprobe int64 `json:"nprobe"`
 	}
+
+	BenchmarkRequest struct {
+		NumQueries int      `json:"num_queries"`
+		Queries    []string `json:"queries"`
+		TopK       int      `json:"top_k"`
+	}
 )

@@ -73,9 +73,14 @@ func (i *IVFIndex) Search(query []float32, k int64) ([]SearchResult, error) {
 	return searchResults, nil
 }
 
-func (i *IVFIndex) Train(trainingData []float32, numVectors int64, vectorSize int64, iterationCount int64, tolerance float32) error {
+func (i *IVFIndex) Train(trainingData []float32, numVectors int64, vectorSize int64, iterationCount int64, tolerance float32, populateInvertedLists bool) error {
 	if i.ptr == nil {
 		return errors.New("IVFIndex pointer is nil")
+	}
+
+	populateFlag := C.int(0)
+	if populateInvertedLists {
+		populateFlag = C.int(1)
 	}
 
 	res := C.IVFIndex_train(
@@ -85,6 +90,7 @@ func (i *IVFIndex) Train(trainingData []float32, numVectors int64, vectorSize in
 		C.long(vectorSize),
 		C.long(iterationCount),
 		C.float(tolerance),
+		populateFlag,
 	)
 
 	if res == 0 {

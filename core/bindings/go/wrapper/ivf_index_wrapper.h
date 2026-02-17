@@ -45,7 +45,7 @@ void IVFIndex_set_nprobe(void *index, long nprobe);
 int IVFIndex_is_initialized(void *index);
 
 int IVFIndex_train(void *index, const float *training_data, long num_vectors, long vector_size, long n_iterations,
-                    float tolerance);
+                    float tolerance, int populate_inverted_lists);
 
 int IVFIndex_set_vector_store(void *index, void *store);
 

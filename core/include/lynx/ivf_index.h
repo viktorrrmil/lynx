@@ -60,7 +60,7 @@ public:
 
     // IVF specific methods
     bool train(const std::vector<std::vector<float> > &training_data, std::int64_t n_iterations = 100,
-               float tolerance = 1e-4);
+               float tolerance = 1e-4, bool populate_inverted_lists = false);
 
     bool update_vectors();
 

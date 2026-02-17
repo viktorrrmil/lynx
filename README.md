@@ -4,7 +4,7 @@ A prototype vector search engine with support for multiple indexing algorithms. 
 
 > **Note:** This is a prototype version focused on core algorithms and vector engine business logic. No application layer has been implemented yet.
 
-![Screenshot](Screenshot.png)
+[search_screenshot](search_screenshot.png)
 
 ## Overview
 
@@ -55,6 +55,16 @@ docker compose down
 
 # Stop and remove volumes
 docker compose down -v
+```
+
+### Saving/Loading Database State
+
+```bash
+# To backup the database state to a file
+docker compose exec postgres pg_dump -U lynx lynx > backup.sql
+
+# To restore the database state from a file
+docker compose exec -T postgres psql -U lynx lynx < backup.sql
 ```
 
 ## Algorithms

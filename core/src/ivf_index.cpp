@@ -96,14 +96,26 @@ IndexType IVFIndex::type() const {
 
 // Called when setting a new vector store, called only once
 bool IVFIndex::train(const std::vector<std::vector<float> > &training_data, std::int64_t n_iterations,
-                     float tolerance) {
+                     float tolerance, bool populate_inverted_lists) {
     if (training_data.empty() || training_data[0].size() != dimension()) {
         return false;
     }
 
     auto kmeans_result = kmeans(training_data, nlist_, n_iterations, tolerance, distance_metric_);
-    centroids_ = kmeans_result.centroids;
+    centroids_ = std::move(kmeans_result.centroids);
     is_trained_ = true;
+
+    // Optionally populate inverted lists directly from kmeans assignments
+    if (populate_inverted_lists) {
+        inverted_lists_.clear();
+        inverted_lists_.resize(centroids_.size());
+        for (size_t i = 0; i < kmeans_result.assignments.size(); i++) {
+            int cluster = kmeans_result.assignments[i];
+            if (cluster >= 0 && cluster < static_cast<int>(inverted_lists_.size())) {
+                inverted_lists_[cluster].push_back(i);
+            }
+        }
+    }
 
     return true;
 }
@@ -135,28 +147,8 @@ bool IVFIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
             return true;
         }
 
-        train(vector_store_->data_, 100, 1e-4);
-
-        inverted_lists_.resize(centroids_.size());
-
-        for (std::size_t i = 0; i < vector_store_->data_.size(); i++) {
-            const auto &vector = vector_store_->get_vector(i);
-
-            // Find the nearest centroid
-            float min_distance = std::numeric_limits<float>::max();
-            std::size_t min_index = 0;
-
-            for (std::size_t j = 0; j < centroids_.size(); j++) {
-                float tmp_distance = compute_distance(distance_metric_, vector, centroids_[j]);
-
-                if (tmp_distance < min_distance) {
-                    min_distance = tmp_distance;
-                    min_index = j;
-                }
-            }
-
-            inverted_lists_[min_index].push_back(i);
-        }
+        int max_iterations = 20;
+        train(vector_store_->data_, max_iterations, 1e-4, true);
 
         return true;
     }

@@ -14,3 +14,10 @@
 - Add index status panel to the frontend interface to track specs of indexes like size, nlist, nprobe, etc.
 - Configurable nlist and nprobe parameters for IVF indexing, so that we can easily adjust the indexing and search parameters to optimize performance based on the specific use case and dataset characteristics. This allows for better control over the trade-off between search accuracy and speed.
 - Add recall@k evaluation metric to the frontend interface.
+
+### February 17, 2025
+
+- Added benchmarking tool
+- Optimized the IVF training process by implementing kmeans++ initialization and parallelizing the training process
+
+[benchmark_screenshot](benchmark_screenshot.png)
