@@ -4,7 +4,7 @@ A prototype vector search engine with support for multiple indexing algorithms. 
 
 > **Note:** This is a prototype version focused on core algorithms and vector engine business logic. No application layer has been implemented yet.
 
-[search_screenshot](search_screenshot.png)
+![search_screenshot](search_screenshot.png)
 
 ## Overview
 

@@ -20,4 +20,4 @@
 - Added benchmarking tool
 - Optimized the IVF training process by implementing kmeans++ initialization and parallelizing the training process
 
-[benchmark_screenshot](benchmark_screenshot.png)
+![benchmark_screenshot](benchmark_screenshot.png)
