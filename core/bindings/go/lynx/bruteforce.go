@@ -87,3 +87,7 @@ func (b *BruteForceIndex) Dimension() int64 {
 func (b *BruteForceIndex) SetVectorStore(store *InMemoryVectorStore) bool {
 	return C.BruteForceIndex_set_vector_store(b.ptr, store.ptr) == 1
 }
+
+func (b *BruteForceIndex) IsInitialized() bool {
+	return C.BruteForceIndex_is_initialized(b.ptr) == 1
+}

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"lynx/lynx"
+	"lynx/metrics"
 	"strconv"
 	"time"
 
@@ -103,6 +105,23 @@ func (api *API) ivfSearch(c *gin.Context) {
 
 	var searchTime = time.Since(start)
 
+	shouldTrackRecall := request.TrackRecall
+	var recall float64
+
+	if shouldTrackRecall {
+		bfResults, err := api.bfIndex.Search(embeddedQuery, request.TopK)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		recall = metrics.CalculateRecall(bfResults, results, request.TopK)
+	} else {
+		recall = -1
+	}
+
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
 		var text string
@@ -123,6 +142,7 @@ func (api *API) ivfSearch(c *gin.Context) {
 		"search_time_ms": searchTime.Milliseconds(),
 		"index_type":     "ivf",
 		"index_size":     api.ivfIndex.Size(),
+		"recall":         recall,
 	})
 }
 
@@ -313,4 +333,72 @@ func (api *API) getVectorCacheInfo(c *gin.Context) {
 		"count":     count,
 		"dimension": dims,
 	})
+}
+
+func (api *API) configureIVF(c *gin.Context) {
+	var request IVFConfigRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	needsRetraining := request.Nlist != api.ivfIndex.NList()
+
+	if needsRetraining {
+		newIndex := lynx.NewIVFIndex(lynx.COSINE, request.Nlist, request.Nprobe)
+		newIndex.SetVectorStore(api.vectorStore)
+
+		api.ivfIndex.Delete()
+		api.ivfIndex = newIndex
+	} else {
+		api.ivfIndex.SetNProbe(request.Nprobe)
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"success":   true,
+		"retrained": needsRetraining,
+	})
+}
+
+/**
+
+interface IndexStatus {
+    bf: {
+        initialized: boolean;
+        vectorCount: number;
+    };
+    ivf: {
+        initialized: boolean;
+        vectorCount: number;
+        nlist: number;
+        nprobe: number;
+    };
+}
+
+*/
+
+func (api *API) getIndexStatus(c *gin.Context) {
+	bfInitialized := api.bfIndex.IsInitialized()
+	bfVectorCount := api.bfIndex.Size()
+
+	ivfInitialized := api.ivfIndex.IsInitialized()
+	ivfVectorCount := api.ivfIndex.Size()
+	ivfNList := api.ivfIndex.NList()
+	ivfNProbe := api.ivfIndex.NProbe()
+
+	c.IndentedJSON(200, gin.H{
+		"bf": gin.H{
+			"initialized": bfInitialized,
+			"vectorCount": bfVectorCount,
+		},
+		"ivf": gin.H{
+			"initialized": ivfInitialized,
+			"vectorCount": ivfVectorCount,
+			"nlist":       ivfNList,
+			"nprobe":      ivfNProbe,
+		},
+	})
+
 }

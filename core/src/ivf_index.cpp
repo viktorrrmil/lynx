@@ -5,6 +5,7 @@
 #include "../include/lynx/ivf_index.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 
@@ -100,7 +101,7 @@ bool IVFIndex::train(const std::vector<std::vector<float> > &training_data, std:
         return false;
     }
 
-    auto kmeans_result = kmeans(training_data, nlist_, n_iterations, tolerance);
+    auto kmeans_result = kmeans(training_data, nlist_, n_iterations, tolerance, distance_metric_);
     centroids_ = kmeans_result.centroids;
     is_trained_ = true;
 
@@ -110,6 +111,17 @@ bool IVFIndex::train(const std::vector<std::vector<float> > &training_data, std:
 bool IVFIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
     if (store) {
         vector_store_ = store;
+
+        if (!vector_store_->data_.empty()) {
+            float first_vec_magnitude = 0.0f;
+            for (float val : vector_store_->data_[0]) {
+                first_vec_magnitude += val * val;
+            }
+            first_vec_magnitude = std::sqrt(first_vec_magnitude);
+
+            debug_log("First vector magnitude: " + std::to_string(first_vec_magnitude));
+            debug_log("Expected for normalized: 1.0");
+        }
 
         // I'm clearing previous centroids and inverted lists so that
         // it's possible to switch vector stores and retrain

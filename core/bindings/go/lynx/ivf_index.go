@@ -87,7 +87,7 @@ func (i *IVFIndex) Train(trainingData []float32, numVectors int64, vectorSize in
 		C.float(tolerance),
 	)
 
-	if !res {
+	if res == 0 {
 		return errors.New("failed to train IVFIndex")
 	}
 
@@ -118,4 +118,20 @@ func (i *IVFIndex) Dimension() int64 {
 
 func (i *IVFIndex) Metric() DistanceMetric {
 	return DistanceMetric(C.IVFIndex_distance_metric(i.ptr))
+}
+
+func (i *IVFIndex) NList() int64 {
+	return int64(C.IVFIndex_nlist(i.ptr))
+}
+
+func (i *IVFIndex) NProbe() int64 {
+	return int64(C.IVFIndex_nprobe(i.ptr))
+}
+
+func (i *IVFIndex) SetNProbe(nProbe int64) {
+	C.IVFIndex_set_nprobe(i.ptr, C.long(nProbe))
+}
+
+func (i *IVFIndex) IsInitialized() bool {
+	return C.IVFIndex_is_initialized(i.ptr) == 1
 }

@@ -16,8 +16,11 @@ class BruteForceIndex : public VectorIndex {
 private:
     DistanceMetric distance_metric_;
     std::shared_ptr<InMemoryVectorStore> vector_store_;
+
 public:
-    BruteForceIndex() : distance_metric_(DistanceMetric::L2) {}
+    BruteForceIndex() : distance_metric_(DistanceMetric::L2) {
+    }
+
     explicit BruteForceIndex(DistanceMetric metric);
 
     void set_distance_metric(DistanceMetric metric) override {
@@ -28,15 +31,20 @@ public:
         return distance_metric_;
     }
 
-    std::vector<std::pair<long, float>>
-    search(const std::span<const float>& query, long k) const override;
+    std::vector<std::pair<long, float> >
+    search(const std::span<const float> &query, long k) const override;
 
     IndexType type() const override;
 
     bool set_vector_store(std::shared_ptr<InMemoryVectorStore> store) override;
 
     size_t size() const;
+
     int dimension() const;
+
+    bool is_initialized() const {
+        return vector_store_ != nullptr;
+    }
 };
 
 #endif //LYNX_BRUTEFORCE_INDEX_H

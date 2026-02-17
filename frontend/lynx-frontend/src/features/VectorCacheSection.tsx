@@ -73,10 +73,10 @@ const VectorCacheSection = () => {
             {/* Header Button - Always Visible */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className={`px-4 py-2 flex items-center justify-center transition-all duration-200 rounded-md border border-slate-200 min-w-[140px] ${
-                    isExpanded 
-                        ? 'bg-slate-800 hover:bg-slate-700' 
-                        : 'bg-gradient-to-br from-slate-50 to-blue-50/30 hover:bg-slate-50/50'
+                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                    isExpanded
+                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
             >
                 <span className={`transition-all duration-200 ${
@@ -86,7 +86,7 @@ const VectorCacheSection = () => {
 
             {/* Expanded Content - Floats absolutely */}
             <div
-                className={`absolute bg-gray-50 right-0 top-full w-64 z-50 overflow-hidden transition-all shadow-xl duration-300 ease-in-out ${
+                className={`absolute bg-gray-50 right-0 top-full mt-2 w-64 z-50 overflow-hidden transition-all shadow-xl duration-300 ease-in-out ${
                     isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
             >

@@ -44,8 +44,9 @@ type (
 	}
 
 	SearchRequest struct {
-		Query string `json:"query"`
-		TopK  int64  `json:"top_k"`
+		Query       string `json:"query"`
+		TopK        int64  `json:"top_k"`
+		TrackRecall bool   `json:"track_recall"`
 	}
 
 	BatchResult struct {
@@ -55,5 +56,10 @@ type (
 
 	AddTextRequest struct {
 		Text string `json:"text"`
+	}
+
+	IVFConfigRequest struct {
+		Nlist  int64 `json:"nlist"`
+		Nprobe int64 `json:"nprobe"`
 	}
 )

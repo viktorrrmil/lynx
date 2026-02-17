@@ -4,6 +4,7 @@ import ResultsColumn from "./results/ResultColumn.tsx";
 import UploadSection from "./UploadSection.tsx";
 import InfoScreen from "./InfoScreen.tsx";
 import VectorCacheSection from "./VectorCacheSection.tsx";
+import { IndexStatusPanel, IndexStatusToggle } from "./IndexStatusPanel.tsx";
 
 const MainScreen = () => {
     const [loading, setLoading] = useState(false);
@@ -13,6 +14,8 @@ const MainScreen = () => {
     const [k, setK] = useState(10);
     const [bfActive, setBfActive] = useState(true);
     const [ivfActive, setIvfActive] = useState(true);
+    const [ivfTrackRecall, setIvfTrackRecall] = useState(false);
+    const [indexStatusExpanded, setIndexStatusExpanded] = useState(false);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -41,7 +44,7 @@ const MainScreen = () => {
                     fetch('http://localhost:8080/ivf_search', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({query, top_k: k}),
+                        body: JSON.stringify({query, top_k: k, track_recall: ivfTrackRecall}),
                     })
                 );
             } else {
@@ -65,7 +68,8 @@ const MainScreen = () => {
                 const data = await ivfResponse.json();
                 setIvfResults({
                     results: data.results || [],
-                    searchTime: data.search_time_ms
+                    searchTime: data.search_time_ms,
+                    recall: data.recall !== undefined ? data.recall : undefined
                 });
             } else if (!ivfActive) {
                 // Clear results if index is not active
@@ -82,7 +86,7 @@ const MainScreen = () => {
         <div className="min-h-screen bg-white">
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
-                <div className="flex w-full justify-between mb-12 items-stretch gap-4">
+                <div className="flex w-full justify-between mb-6 items-stretch gap-4">
                     <div className="">
                         <h1 className="text-2xl font-light tracking-tight text-gray-900">
                             Lynx - Vector Search Engine
@@ -91,8 +95,17 @@ const MainScreen = () => {
                             Compare BruteForce vs IVF index performance
                         </p>
                     </div>
-                    <VectorCacheSection />
+                    <div className="flex items-center gap-2">
+                        <IndexStatusToggle
+                            isExpanded={indexStatusExpanded}
+                            onToggle={() => setIndexStatusExpanded(!indexStatusExpanded)}
+                        />
+                        <VectorCacheSection />
+                    </div>
                 </div>
+
+                {/* Index Status Panel */}
+                <IndexStatusPanel isExpanded={indexStatusExpanded} />
 
 
                 {/* Upload Section */}
@@ -137,6 +150,19 @@ const MainScreen = () => {
                             >
                                 IVF {ivfActive ? '✓' : '○'}
                             </button>
+                            {ivfActive && (
+                                <button
+                                    onClick={() => setIvfTrackRecall(!ivfTrackRecall)}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        ivfTrackRecall
+                                            ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                    title="Track IVF Recall@k"
+                                >
+                                    Recall@k {ivfTrackRecall ? '✓' : '○'}
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="space-y-6">
@@ -195,6 +221,21 @@ const MainScreen = () => {
                                     </p>
                                 </div>
                             )}
+
+                        {/* Recall Display */}
+                        {ivfActive && ivfTrackRecall && ivfResults.recall !== undefined && ivfResults.recall !== -1 && (
+                            <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                                <p className="text-sm text-gray-900">
+                                    <span className="font-medium">IVF Recall@{k}:</span>{' '}
+                                    <span className="font-mono font-medium text-blue-700">
+                                        {(ivfResults.recall * 100).toFixed(2)}%
+                                    </span>
+                                    <span className="text-gray-600 ml-2">
+                                        ({ivfResults.recall.toFixed(4)})
+                                    </span>
+                                </p>
+                            </div>
+                        )}
 
                         {/* Side by Side Results */}
                         <div className="flex gap-6">

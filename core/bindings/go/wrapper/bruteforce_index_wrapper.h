@@ -9,29 +9,35 @@
 extern "C" {
 #endif
 
-    typedef struct {
-        long id;
-        float distance;
-    } SearchResult;
+typedef struct {
+    long id;
+    float distance;
+} SearchResult;
 
-    typedef struct {
-        SearchResult* results;
-        long count;
-    } SearchResults;
+typedef struct {
+    SearchResult *results;
+    long count;
+} SearchResults;
 
-    void* BruteForceIndex_new(int metric);
-    void BruteForceIndex_delete(void* index);
+void *BruteForceIndex_new(int metric);
 
-    SearchResults* BruteForceIndex_search(void* index, const float* query, long query_size, long k);
-    void BruteForceIndex_free_search_results(SearchResults* results);
+void BruteForceIndex_delete(void *index);
 
-    long BruteForceIndex_size(void* index);
-    long BruteForceIndex_dimension(void* index);
-    int BruteForceIndex_distance_metric(void* index);
+SearchResults *BruteForceIndex_search(void *index, const float *query, long query_size, long k);
 
-    int BruteForceIndex_set_vector_store(void* index, void* store);
+void BruteForceIndex_free_search_results(SearchResults *results);
 
-    // void free(void* index);
+long BruteForceIndex_size(void *index);
+
+long BruteForceIndex_dimension(void *index);
+
+int BruteForceIndex_distance_metric(void *index);
+
+int BruteForceIndex_is_initialized(void *index);
+
+int BruteForceIndex_set_vector_store(void *index, void *store);
+
+// void free(void* index);
 
 #ifdef __cplusplus
 }
