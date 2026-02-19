@@ -130,6 +130,10 @@ func (store *PostgresVectorStore) GetAllVectors() ([][]float32, error) {
 		vectors = append(vectors, vec.Slice())
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return vectors, nil
 }
 
