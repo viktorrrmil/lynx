@@ -67,6 +67,9 @@ docker compose exec postgres pg_dump -U lynx lynx > backup.sql
 docker compose exec -T postgres psql -U lynx lynx < backup.sql
 ```
 
+
+> **Note:** Currently only .txt files are supported for the file upload
+
 ## Algorithms
 
 ### Brute Force
