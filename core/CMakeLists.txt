@@ -16,7 +16,12 @@ enable_testing()
 
 add_library(lynx_core
         src/bruteforce_index.cpp
+        src/in_memory_vector_store.cpp
+        src/ivf_index.cpp
         src/utils/metric.cpp
+        src/utils/file_utils.cpp
+        src/utils/math.cpp
+        src/utils/k_means/kmeans.cpp
         src/index_loader.cpp
         src/index_registry.cpp
         src/serialization.cpp
