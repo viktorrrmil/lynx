@@ -21,3 +21,9 @@
 - Optimized the IVF training process by implementing kmeans++ initialization and parallelizing the training process
 
 ![benchmark_screenshot](benchmark_screenshot.png)
+
+### February 19, 2025
+
+- Added IVF param sweep benchmarking to evaluate the impact of different nlist and nprobe values on search performance and accuracy.
+
+![ivf_param_sweep_screenshot.png](ivf_param_sweep_screenshot.png)

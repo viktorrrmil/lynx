@@ -25,6 +25,8 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 	vectors, err := pgStore.GetAllVectors()
 	if err != nil {
 		fmt.Printf("[ERROR] Failed to get vectors from Postgres: %v\n", err)
+	} else {
+		fmt.Printf("Retrieved %d vectors from Postgres\n", len(vectors))
 	}
 	for _, vec := range vectors {
 		err := vectorStore.AddVector(vec)

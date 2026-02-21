@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from sentence_transformers import SentenceTransformer
 import torch
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 app = Flask(__name__)
@@ -9,12 +10,12 @@ model = SentenceTransformer("all-MiniLM-L6-v2", device=device)
 @app.route("/embed_text", methods=["POST"])
 def embed_text():
     data = request.json
-    text = data["text"]
+    text = data.get("text")
 
     if not text:
-        return jsonify({"error": "No texts provided"}), 400
+        return jsonify({"error": "No text provided"}), 400
 
-    vec = model.encode(text)
+    vec = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
 
     return jsonify({
         "embedding": vec.tolist(),
@@ -24,18 +25,17 @@ def embed_text():
 @app.route("/embed_text_batch", methods=["POST"])
 def embed_text_batch():
     data = request.json
-    texts = data["batch"]
+    texts = data.get("batch")
 
     if not texts:
         return jsonify({"error": "No texts provided"}), 400
 
-    vectors = model.encode(texts, convert_to_numpy=True, normalize_embeddings=True, show_progress_bar=True)
+    vectors = model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
 
     return jsonify({
         "batch_embedding": vectors.tolist(),
         "dimension": vectors.shape[1] if len(vectors) > 0 else 0
     })
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

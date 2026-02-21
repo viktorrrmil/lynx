@@ -1,121 +1,182 @@
 //
-// Created by viktor on 12/10/25.
+// Created by viktor on 2/20/26.
 //
 
-#include "gtest/gtest.h"
-#include "../include/lynx/bruteforce_index.h"
-#include "lynx/utils/metric.h"
+#include <gtest/gtest.h>
+#include "lynx/bruteforce_index.h"
+#include "lynx/in_memory_vector_store.h"
 
-// Add and search returns the same vector
-TEST(BruteForceIndexTest, SimpleAddAndSearch) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
+class BruteForceIndexTest : public ::testing::Test {
+protected:
+    BruteForceIndex index;
+    std::shared_ptr<InMemoryVectorStore> store;
 
-    auto results = index.search({1.0f, 2.0f}, 1);
+    void SetUp() override {
+        store = std::make_shared<InMemoryVectorStore>();
+    }
+
+    void PopulateStore() {
+        store->add_vector({1.0f, 0.0f, 0.0f});
+        store->add_vector({0.0f, 1.0f, 0.0f});
+        store->add_vector({0.0f, 0.0f, 1.0f});
+        store->add_vector({1.0f, 1.0f, 0.0f});
+        store->add_vector({0.5f, 0.5f, 0.5f});
+        index.set_vector_store(store);
+    }
+};
+
+// ==================== INITIALIZATION TESTS ====================
+
+TEST_F(BruteForceIndexTest, IsNotInitializedByDefault) {
+    EXPECT_FALSE(index.is_initialized());
+}
+
+TEST_F(BruteForceIndexTest, IsInitializedAfterSetVectorStore) {
+    index.set_vector_store(store);
+    EXPECT_TRUE(index.is_initialized());
+}
+
+// ==================== SET_VECTOR_STORE TESTS ====================
+
+TEST_F(BruteForceIndexTest, SetVectorStoreReturnsTrueForValidStore) {
+    EXPECT_TRUE(index.set_vector_store(store));
+}
+
+TEST_F(BruteForceIndexTest, SetVectorStoreReturnsFalseForNullptr) {
+    EXPECT_FALSE(index.set_vector_store(nullptr));
+}
+
+// ==================== SIZE AND DIMENSION TESTS ====================
+
+TEST_F(BruteForceIndexTest, SizeIsZeroWithoutVectorStore) {
+    EXPECT_EQ(index.size(), 0);
+}
+
+TEST_F(BruteForceIndexTest, DimensionIsZeroWithoutVectorStore) {
+    EXPECT_EQ(index.dimension(), 0);
+}
+
+TEST_F(BruteForceIndexTest, SizeMatchesVectorStore) {
+    PopulateStore();
+    EXPECT_EQ(index.size(), 5);
+}
+
+TEST_F(BruteForceIndexTest, DimensionMatchesVectorStore) {
+    PopulateStore();
+    EXPECT_EQ(index.dimension(), 3);
+}
+
+// ==================== SEARCH TESTS ====================
+
+TEST_F(BruteForceIndexTest, SearchReturnsEmptyWithoutVectorStore) {
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = index.search(query, 1);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(BruteForceIndexTest, SearchReturnsEmptyWithEmptyQuery) {
+    PopulateStore();
+    std::vector<float> query;
+    auto results = index.search(query, 1);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(BruteForceIndexTest, SearchReturnsEmptyWithKZero) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = index.search(query, 0);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(BruteForceIndexTest, SearchReturnsEmptyWithNegativeK) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = index.search(query, -1);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(BruteForceIndexTest, SearchReturnsEmptyWithDimensionMismatch) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 0.0f}; // 2D query for 3D store
+    auto results = index.search(query, 1);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(BruteForceIndexTest, SearchReturnsExactMatchFirst) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = index.search(query, 1);
+
     ASSERT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0].first, 1);
-    EXPECT_FLOAT_EQ(results[0].second, 0.0f); // Distance to itself
+    EXPECT_EQ(results[0].first, 0);  // First vector is exact match
+    EXPECT_FLOAT_EQ(results[0].second, 0.0f);
 }
 
-// Top-K returns correct amount of results
-TEST(BruteForceIndexTest, TopKCorrentAmount) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    index.add_vector(1, {1.0f, 2.0f});
-    index.add_vector(2, {2.0f, 3.0f});
-    index.add_vector(3, {3.0f, 4.0f});
-    index.add_vector(4, {4.0f, 5.0f});
-    index.add_vector(5, {5.0f, 6.0f});
+TEST_F(BruteForceIndexTest, SearchReturnsKResults) {
+    PopulateStore();
+    std::vector<float> query = {0.5f, 0.5f, 0.5f};
+    auto results = index.search(query, 3);
 
-    auto results = index.search({1.0f, 2.0f}, 3);
-    ASSERT_EQ(results.size(), 3);
+    EXPECT_EQ(results.size(), 3);
 }
 
-// Results are sorted by distance
-TEST(BruteFoceIndexTest, ResultsSortedByDistance) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    index.add_vector(1, {1.0f, 2.0f});
-    index.add_vector(2, {2.0f, 3.0f});
-    index.add_vector(3, {3.0f, 4.0f});
-    index.add_vector(4, {4.0f, 5.0f});
-    index.add_vector(5, {5.0f, 6.0f});
+TEST_F(BruteForceIndexTest, SearchResultsAreSortedByDistance) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 1.0f, 0.0f};
+    auto results = index.search(query, 5);
 
-    auto results = index.search({1.0f, 2.0f}, 4);
-
-    for (size_t i = 1; i < results.size(); i++) {
+    for (size_t i = 1; i < results.size(); ++i) {
         EXPECT_LE(results[i - 1].second, results[i].second);
     }
 }
 
-// Different distance metrics give different ordering
-TEST(BruteForceIndexTest, DifferentMetricsOrdering) {
-    BruteForceIndex l2_index(2, DistanceMetric::L2);
-    BruteForceIndex cosine_index(2, DistanceMetric::COSINE);
+TEST_F(BruteForceIndexTest, SearchReturnsAllWhenKExceedsSize) {
+    PopulateStore();
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = index.search(query, 100);
 
-    l2_index.add_vector(1, {1.0f, 2.0f});
-    l2_index.add_vector(2, {0.0f, 2.0f});
-    l2_index.add_vector(3, {4.0f, 3.0f});
-
-    cosine_index.add_vector(1, {1.0f, 2.0f});
-    cosine_index.add_vector(2, {0.0f, 2.0f});
-    cosine_index.add_vector(3, {4.0f, 3.0f});
-
-    auto l2_results = l2_index.search({1.0f, 1.0f}, 2);
-    auto cosine_results = cosine_index.search({1.0f, 1.0f}, 2);
-
-    bool order_different = false;
-    for (size_t i = 0; i < l2_results.size(); i++) {
-        if (l2_results[i].first != cosine_results[i].first) {
-            order_different = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(order_different);
-
-    bool distance_different = false;
-
-    for (size_t i = 0; i < l2_results.size(); i++) {
-        if (l2_results[i].second != cosine_results[i].second) {
-            distance_different = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(distance_different);
+    EXPECT_EQ(results.size(), 5);
 }
 
-// Adding duplicate IDs should fail
-TEST(BruteForceIndexTest, DuplicateIDNotAllowed) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
-    EXPECT_FALSE(index.add_vector(1, {2.0f, 3.0f})); // Duplicate ID
-}
+TEST_F(BruteForceIndexTest, SearchWithL2Distance) {
+    store->add_vector({0.0f, 0.0f, 0.0f});
+    store->add_vector({3.0f, 4.0f, 0.0f}); // L2 distance = 5 from origin
+    index.set_vector_store(store);
+    index.set_distance_metric(DistanceMetric::L2);
 
-// Identical vectors with different IDs
-TEST(BruteForceIndexTest, IdenticalVectorsDifferentIDs) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    EXPECT_TRUE(index.add_vector(1, {1.0f, 2.0f}));
-    EXPECT_TRUE(index.add_vector(2, {1.0f, 2.0f})); // Same vector, different ID
+    std::vector<float> query = {0.0f, 0.0f, 0.0f};
+    auto results = index.search(query, 2);
 
-    auto results = index.search({1.0f, 2.0f}, 2);
     ASSERT_EQ(results.size(), 2);
-    EXPECT_EQ(results[0].second, 0.0f);
-    EXPECT_EQ(results[1].second, 0.0f);
+    EXPECT_FLOAT_EQ(results[0].second, 0.0f);
+    EXPECT_FLOAT_EQ(results[1].second, 5.0f);
 }
 
-// Dimension mismatch handling
-TEST(BruteForceIndexTest, InvalidVectorDimension) {
-    BruteForceIndex index(3, DistanceMetric::L2);
-    EXPECT_FALSE(index.add_vector(1, {1.0f, 2.0f})); // Invalid dimension
+TEST_F(BruteForceIndexTest, SearchWithCosineDistance) {
+    BruteForceIndex cosine_index(DistanceMetric::COSINE);
+    store->add_vector({1.0f, 0.0f, 0.0f});
+    store->add_vector({-1.0f, 0.0f, 0.0f}); // Opposite direction
+    cosine_index.set_vector_store(store);
 
-    index.add_vector(2, {1.0f, 2.0f, 3.0f});
-    auto results = index.search({1.0f, 2.0f}, 1); // Invalid query dimension
-    EXPECT_TRUE(results.empty());
+    std::vector<float> query = {1.0f, 0.0f, 0.0f};
+    auto results = cosine_index.search(query, 2);
+
+    ASSERT_EQ(results.size(), 2);
+    EXPECT_EQ(results[0].first, 0); // Same direction should be closest
 }
 
-// Search on empty index
-TEST(BruteForceIndexTest, SearchOnEmptyIndex) {
-    BruteForceIndex index(2, DistanceMetric::L2);
-    auto results = index.search({1.0f, 2.0f}, 1);
-    EXPECT_TRUE(results.empty());
+TEST_F(BruteForceIndexTest, SearchWithChangedTopK) {
+    PopulateStore();
+    std::vector<float> query = {0.5f, 0.5f, 0.5f};
+
+    auto results_k2 = index.search(query, 2);
+    EXPECT_EQ(results_k2.size(), 2);
+
+    auto results_k4 = index.search(query, 4);
+    EXPECT_EQ(results_k4.size(), 4);
+
+    for (int i = 0; i < 2; ++i) {
+        EXPECT_EQ(results_k2[i].first, results_k4[i].first);
+        EXPECT_FLOAT_EQ(results_k2[i].second, results_k4[i].second);
+    }
 }

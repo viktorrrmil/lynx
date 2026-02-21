@@ -68,4 +68,27 @@ type (
 		Queries    []string `json:"queries"`
 		TopK       int      `json:"top_k"`
 	}
+
+	IVFParamSweepRequest struct {
+		NlistValues  []int64  `json:"nlist_values"`
+		NprobeValues []int64  `json:"nprobe_values"`
+		Queries      []string `json:"queries"`
+		TopK         int      `json:"top_k"`
+	}
+
+	IVFParamResult struct {
+		Nlist         int64   `json:"nlist"`
+		Nprobe        int64   `json:"nprobe"`
+		MeanRecall    float64 `json:"mean_recall"`
+		MeanLatencyMs float64 `json:"mean_latency_ms"`
+		Speedup       float64 `json:"speedup"`
+	}
+
+	IVFParamSweepResponse struct {
+		Results      []IVFParamResult `json:"results"`
+		BestSpeedup  IVFParamResult   `json:"best_speedup"`
+		BestRecall   IVFParamResult   `json:"best_recall"`
+		BestLatency  IVFParamResult   `json:"best_latency"`
+		BestBalanced IVFParamResult   `json:"best_balanced"`
+	}
 )
