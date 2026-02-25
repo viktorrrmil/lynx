@@ -49,6 +49,8 @@ add_executable(lynx
         bindings/go/wrapper/in_memory_vector_store_wrapper.h
         bindings/go/wrapper/in_memory_vector_store_wrapper.cpp
         include/lynx/utils/logging.h
+        include/lynx/ivf_pq_index.h
+        src/ivf_pq_index.cpp
 )
 
 target_link_libraries(lynx
