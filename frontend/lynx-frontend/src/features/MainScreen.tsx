@@ -14,17 +14,20 @@ const MainScreen = () => {
     const [query, setQuery] = useState('');
     const [bfResults, setBfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [ivfResults, setIvfResults] = useState<IndexResults>({results: [], searchTime: null});
+    const [ivfPqResults, setIvfPqResults] = useState<IndexResults>({results: [], searchTime: null});
     const [k, setK] = useState(10);
     const [bfActive, setBfActive] = useState(true);
     const [ivfActive, setIvfActive] = useState(true);
+    const [ivfPqActive, setIvfPqActive] = useState(true);
     const [ivfTrackRecall, setIvfTrackRecall] = useState(false);
+    const [ivfPqTrackRecall, setIvfPqTrackRecall] = useState(false);
     const [indexStatusExpanded, setIndexStatusExpanded] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('search');
     const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
-        if (!bfActive && !ivfActive) return; // Don't search if no indexes are active
+        if (!bfActive && !ivfActive && !ivfPqActive) return; // Don't search if no indexes are active
 
         setLoading(true);
 
@@ -56,7 +59,19 @@ const MainScreen = () => {
                 promises.push(null);
             }
 
-            const [bfResponse, ivfResponse] = await Promise.all(promises);
+            if (ivfPqActive) {
+                promises.push(
+                    fetch('http://localhost:8080/ivf_pq_search', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({query, top_k: k, track_recall: ivfPqTrackRecall}),
+                    })
+                );
+            } else {
+                promises.push(null);
+            }
+
+            const [bfResponse, ivfResponse, ivfPqResponse] = await Promise.all(promises);
 
             if (bfResponse && bfResponse.ok) {
                 const data = await bfResponse.json();
@@ -79,6 +94,18 @@ const MainScreen = () => {
             } else if (!ivfActive) {
                 // Clear results if index is not active
                 setIvfResults({results: [], searchTime: null});
+            }
+
+            if (ivfPqResponse && ivfPqResponse.ok) {
+                const data = await ivfPqResponse.json();
+                setIvfPqResults({
+                    results: data.results || [],
+                    searchTime: data.search_time_ms,
+                    recall: data.recall !== undefined ? data.recall : undefined
+                });
+            } else if (!ivfPqActive) {
+                // Clear results if index is not active
+                setIvfPqResults({results: [], searchTime: null});
             }
         } catch (error) {
             console.error('Search error:', error);
@@ -173,15 +200,13 @@ const MainScreen = () => {
 
                         {/* Search Section */}
                         <div>
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                                 <h2 className="text-sm font-medium text-gray-900">
-                                    {bfActive && ivfActive ? 'Search Both Indexes' :
-                                     bfActive ? 'Search BruteForce Index' :
-                                     ivfActive ? 'Search IVF Index' : 'Search Indexes'}
+                                    Search Active Indexes
                                 </h2>
 
                                 {/* Index Toggle Buttons */}
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <button
                                         onClick={() => setBfActive(!bfActive)}
                                         className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
@@ -212,7 +237,30 @@ const MainScreen = () => {
                                             }`}
                                             title="Track IVF Recall@k"
                                         >
-                                            Recall@k {ivfTrackRecall ? '✓' : '○'}
+                                            IVF Recall {ivfTrackRecall ? '✓' : '○'}
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setIvfPqActive(!ivfPqActive)}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                            ivfPqActive
+                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        IVF-PQ {ivfPqActive ? '✓' : '○'}
+                                    </button>
+                                    {ivfPqActive && (
+                                        <button
+                                            onClick={() => setIvfPqTrackRecall(!ivfPqTrackRecall)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                                ivfPqTrackRecall
+                                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                            title="Track IVF-PQ Recall@k"
+                                        >
+                                            PQ Recall {ivfPqTrackRecall ? '✓' : '○'}
                                         </button>
                                     )}
                                 </div>
@@ -238,15 +286,14 @@ const MainScreen = () => {
                                     />
                                     <button
                                         onClick={handleSearch}
-                                        disabled={loading || (!bfActive && !ivfActive)}
+                                        disabled={loading || (!bfActive && !ivfActive && !ivfPqActive)}
                                         className="px-6 py-2 text-sm font-medium text-white bg-gray-900
                                              rounded hover:bg-gray-800 disabled:bg-gray-300
                                              disabled:cursor-not-allowed transition-colors"
                                     >
                                         {loading ? 'Searching...' :
-                                         !bfActive && !ivfActive ? 'Select Index' :
-                                         bfActive && ivfActive ? 'Search Both' :
-                                         bfActive ? 'Search BF' : 'Search IVF'}
+                                         !bfActive && !ivfActive && !ivfPqActive ? 'Select Index' :
+                                         'Search'}
                                     </button>
                                 </div>
 
@@ -289,24 +336,54 @@ const MainScreen = () => {
                                     </div>
                                 )}
 
-                                {/* Side by Side Results */}
-                                <div className="flex gap-6">
-                                    {bfActive && (
-                                        <ResultsColumn
-                                            query={query}
-                                            title="BruteForce Index"
-                                            results={bfResults.results}
-                                            searchTime={bfResults.searchTime}
-                                        />
-                                    )}
-                                    {ivfActive && (
-                                        <ResultsColumn
-                                            query={query}
-                                            title="IVF Index"
-                                            results={ivfResults.results}
-                                            searchTime={ivfResults.searchTime}
-                                        />
-                                    )}
+                                {ivfPqActive && ivfPqTrackRecall && ivfPqResults.recall !== undefined && ivfPqResults.recall !== -1 && (
+                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                                        <p className="text-sm text-gray-900">
+                                            <span className="font-medium">IVF-PQ Recall@{k}:</span>{' '}
+                                            <span className="font-mono font-medium text-blue-700">
+                                                {(ivfPqResults.recall * 100).toFixed(2)}%
+                                            </span>
+                                            <span className="text-gray-600 ml-2">
+                                                ({ivfPqResults.recall.toFixed(4)})
+                                            </span>
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Side by Side Results - Horizontally Scrollable */}
+                                <div className="overflow-x-auto">
+                                    <div className="flex gap-6 min-w-max">
+                                        {bfActive && (
+                                            <div className="w-80 flex-shrink-0">
+                                                <ResultsColumn
+                                                    query={query}
+                                                    title="BruteForce Index"
+                                                    results={bfResults.results}
+                                                    searchTime={bfResults.searchTime}
+                                                />
+                                            </div>
+                                        )}
+                                        {ivfActive && (
+                                            <div className="w-80 flex-shrink-0">
+                                                <ResultsColumn
+                                                    query={query}
+                                                    title="IVF Index"
+                                                    results={ivfResults.results}
+                                                    searchTime={ivfResults.searchTime}
+                                                />
+                                            </div>
+                                        )}
+                                        {ivfPqActive && (
+                                            <div className="w-80 flex-shrink-0">
+                                                <ResultsColumn
+                                                    query={query}
+                                                    title="IVF-PQ Index"
+                                                    results={ivfPqResults.results}
+                                                    searchTime={ivfPqResults.searchTime}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

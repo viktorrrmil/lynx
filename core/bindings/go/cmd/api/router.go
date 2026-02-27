@@ -29,6 +29,10 @@ func setupRouter(api *API) *gin.Engine {
 	router.POST("/ivf_search", api.ivfSearch)
 	router.POST("/rebuild_ivf", api.configureIVF)
 
+	// IVF-PQ endpoints
+	router.POST("/ivf_pq_search", api.ivfPqSearch)
+	router.POST("/rebuild_ivf_pq", api.configureIVFPQ)
+
 	// Vector Cache endpoints
 	router.POST("/vector_cache/save", api.saveVectorCache)
 	router.POST("/vector_cache/load", api.loadVectorCache)

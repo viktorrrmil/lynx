@@ -18,6 +18,7 @@ add_library(lynx_core
         src/bruteforce_index.cpp
         src/in_memory_vector_store.cpp
         src/ivf_index.cpp
+        src/ivf_pq_index.cpp
         src/utils/metric.cpp
         src/utils/file_utils.cpp
         src/utils/math.cpp
@@ -51,6 +52,8 @@ add_executable(lynx
         include/lynx/utils/logging.h
         include/lynx/ivf_pq_index.h
         src/ivf_pq_index.cpp
+        bindings/go/wrapper/ivf_pq_index_wrapper.h
+        bindings/go/wrapper/ivf_pq_index_wrapper.cpp
 )
 
 target_link_libraries(lynx

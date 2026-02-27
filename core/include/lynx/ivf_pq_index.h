@@ -20,6 +20,9 @@ private:
     std::int64_t nlist_;
     std::int64_t nprobe_;
 
+    std::vector<std::uint8_t> encode_vector(const std::span<const float> &vector) const;
+    std::vector<float> reconstruct_vector(const std::vector<std::uint8_t> &code) const;
+
     // PQ specific members
     std::int64_t m_; // number of sub-spaces
     std::int64_t codebook_size_; // number of centroids per sub-space
@@ -29,10 +32,11 @@ private:
     std::vector<std::vector<std::uint8_t>> pq_codes_;
 
 public:
-    IVFPQIndex() : distance_metric_(DistanceMetric::L2) {
+    IVFPQIndex() : distance_metric_(DistanceMetric::L2), is_trained_(false), nlist_(0), nprobe_(0), m_(0), codebook_size_(0), compressed_dim_(0) {
     }
 
-    explicit IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe);
+    explicit IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe, std::int64_t m, std::int64_t codebook_size);
+
 
     void set_distance_metric(DistanceMetric metric) override {
         distance_metric_ = metric;
@@ -52,6 +56,30 @@ public:
 
     void set_nprobe(int64_t nprobe) {
         nprobe_ = nprobe;
+    }
+
+    int64_t m() const {
+        return m_;
+    }
+
+    void set_m(int64_t m) {
+        m_ = m;
+    }
+
+    int64_t codebook_size() const {
+        return codebook_size_;
+    }
+
+    void set_codebook_size(int64_t codebook_size) {
+        codebook_size_ = codebook_size;
+    }
+
+    int64_t compressed_dim() const {
+        return compressed_dim_;
+    }
+
+    void set_compressed_dim(int64_t compressed_dim) {
+        compressed_dim_ = compressed_dim;
     }
 
     std::vector<std::pair<long, float> >

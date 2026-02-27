@@ -28,6 +28,10 @@ type IVFIndex struct {
 	ptr unsafe.Pointer
 }
 
+type IVFPQIndex struct {
+	ptr unsafe.Pointer
+}
+
 type InMemoryVectorStore struct {
 	ptr unsafe.Pointer
 }

@@ -13,11 +13,55 @@
 #include "lynx/in_memory_vector_store.h"
 #include "lynx/utils/logging.h"
 
-IVFPQIndex::IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe)
-    : distance_metric_(metric), nlist_(nlist), nprobe_(nprobe) {
+IVFPQIndex::IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe, std::int64_t m, std::int64_t codebook_size)
+    : distance_metric_(metric), nlist_(nlist), nprobe_(nprobe), m_(m), codebook_size_(codebook_size) {
     centroids_.reserve(nlist_);
     inverted_lists_.resize(nlist_);
     is_trained_ = false;
+    compressed_dim_ = 0; // Will be set during training based on the input data dimension
+}
+
+std::vector<std::uint8_t> IVFPQIndex::encode_vector(const std::span<const float> &vector) const {
+    std::vector<std::uint8_t> code(m_);
+
+    for (int i = 0; i < m_; i++) {
+        std::vector<float> subspace;
+        for (int j = 0; j < compressed_dim_; j++) {
+            subspace.push_back(vector[i * compressed_dim_ + j]);
+        }
+
+        const auto& codebook = pq_codebooks_[i];
+        int best_index = 0;
+        float best_distance = compute_distance(distance_metric_, subspace, codebook[0]);
+        for (size_t j = 1; j < codebook.size(); j++) {
+            float distance = compute_distance(distance_metric_, subspace, codebook[j]);
+            if (distance < best_distance) {
+                best_distance = distance;
+                best_index = j;
+            }
+        }
+
+        code[i] = static_cast<std::int8_t>(best_index);
+    }
+
+    return code;
+}
+
+std::vector<float> IVFPQIndex::reconstruct_vector(const std::vector<std::uint8_t> &code) const {
+    std::vector<float> results;
+
+    for (int i = 0; i < m_; i++) {
+        int codebook_index = static_cast<int>(code[i]);
+        if (codebook_index >= 0 && codebook_index < static_cast<int>(pq_codebooks_[i].size())) {
+            const std::vector<float>& centroid = pq_codebooks_[i][codebook_index];
+            results.insert(results.end(), centroid.begin(), centroid.end());
+        } else {
+            std::cerr << "ERROR: Invalid PQ code index: " << codebook_index << " for subspace " << i << std::endl;
+            results.insert(results.end(), compressed_dim_, 0.0f);
+        }
+    }
+
+    return results;
 }
 
 std::vector<std::pair<long, float> >
@@ -42,9 +86,9 @@ IVFPQIndex::search(const std::span<const float> &query, long k) const {
         std::int64_t centroid_index = centroid_distances[i].first;
 
         for (long id: inverted_lists_[centroid_index]) {
-            const std::span<const float> &stored_vector = vector_store_->get_vector(id);
+            std::vector<float> reconstructed = reconstruct_vector(pq_codes_[id]);
 
-            float distance = compute_distance(distance_metric_, query, stored_vector);
+            float distance = compute_distance(distance_metric_, query, reconstructed);
 
             results.emplace_back(id, distance);
         }
@@ -61,7 +105,7 @@ IVFPQIndex::search(const std::span<const float> &query, long k) const {
 }
 
 IndexType IVFPQIndex::type() const {
-    return IndexType::IVF;
+    return IndexType::IVF_PQ;
 }
 
 // Called when setting a new vector store, called only once
@@ -74,7 +118,6 @@ bool IVFPQIndex::train(const std::vector<std::vector<float> > &training_data, st
 
     auto kmeans_result = kmeans(training_data, nlist_, n_iterations, tolerance, distance_metric_);
     centroids_ = std::move(kmeans_result.centroids);
-    is_trained_ = true;
 
     if (populate_inverted_lists) {
         inverted_lists_.clear();
@@ -88,10 +131,12 @@ bool IVFPQIndex::train(const std::vector<std::vector<float> > &training_data, st
     }
 
     // PQ codebook training
+    set_compressed_dim(dimension() / m_);
+
     for (std::int64_t i = 0; i < m_; i++) {
         std::vector<std::vector<float>> subspace_data;
         for (const auto& vec: training_data) {
-            std::vector<float> subvector(vec.begin() + i * compressed_dim_, vec.begin() + (i + 1) & compressed_dim_);
+            std::vector<float> subvector(vec.begin() + i * compressed_dim_, vec.begin() + (i + 1) * compressed_dim_);
             subspace_data.push_back(std::move(subvector));
         }
 
@@ -99,8 +144,12 @@ bool IVFPQIndex::train(const std::vector<std::vector<float> > &training_data, st
         pq_codebooks_.push_back(std::move(pq_kmeans_result.centroids));
     }
 
-    // TODO: Encode vectors with PQ
+    for (auto& vec : training_data) {
+        std::vector<std::uint8_t> code = encode_vector(vec);
+        pq_codes_.push_back(std::move(code));
+    }
 
+    is_trained_ = true;
     return true;
 }
 
@@ -125,6 +174,9 @@ bool IVFPQIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
         centroids_.clear();
         inverted_lists_.clear();
         is_trained_ = false;
+        set_compressed_dim(0);
+        pq_codebooks_.clear();
+        pq_codes_.clear();
 
         // Case when the vector store doesn't have any vectors yet
         if (vector_store_->size() == 0) {
@@ -190,6 +242,10 @@ bool IVFPQIndex::update_vectors() {
             std::cerr << "ERROR: Invalid centroid index: " << min_index << std::endl;
             return false;
         }
+
+        // Encode the vector using PQ codebooks
+        std::vector<std::uint8_t> code = encode_vector(vector_store_->data_[i]);
+        pq_codes_.push_back(std::move(code));
     }
 
     return true;
