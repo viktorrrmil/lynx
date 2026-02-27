@@ -22,6 +22,7 @@ endif
 CORE_SOURCES = \
 	$(SRC_DIR)/bruteforce_index.cpp \
 	$(SRC_DIR)/ivf_index.cpp \
+	$(SRC_DIR)/ivf_pq_index.cpp \
 	$(SRC_DIR)/in_memory_vector_store.cpp \
 	$(SRC_DIR)/serialization.cpp \
 	$(SRC_DIR)/index_loader.cpp \
@@ -33,6 +34,7 @@ CORE_SOURCES = \
 WRAPPER_SOURCES = \
 	$(WRAPPER_DIR)/bruteforce_index_wrapper.cpp \
 	$(WRAPPER_DIR)/ivf_index_wrapper.cpp \
+	$(WRAPPER_DIR)/ivf_pq_index_wrapper.cpp \
 	$(WRAPPER_DIR)/in_memory_vector_store_wrapper.cpp
 
 .PHONY: build-wrapper build-go test run clean

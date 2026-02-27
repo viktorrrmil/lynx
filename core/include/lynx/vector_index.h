@@ -13,7 +13,8 @@
 enum class IndexType : int64_t {
     BRUTEFORCE = 1,
     IVF = 2,
-    HNSW = 3
+    IVF_PQ = 3,
+    HNSW = 4
 };
 
 

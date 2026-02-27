@@ -43,9 +43,13 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 	ivfIndex := lynx.NewIVFIndex(metric, 100, 10)
 	ivfIndex.SetVectorStore(vectorStore)
 
+	ivfPqIndex := lynx.NewIVFPQIndex(metric, 100, 10, 4, 8)
+	ivfPqIndex.SetVectorStore(vectorStore)
+
 	return &API{
-		bfIndex:  bfIndex,
-		ivfIndex: ivfIndex,
+		bfIndex:    bfIndex,
+		ivfIndex:   ivfIndex,
+		ivfPqIndex: ivfPqIndex,
 
 		vectorStore: vectorStore,
 		vectorCache: cache,

@@ -11,6 +11,14 @@ interface IndexStatus {
         nlist: number;
         nprobe: number;
     };
+    ivfpq: {
+        initialized: boolean;
+        vectorCount: number;
+        nlist: number;
+        nprobe: number;
+        m: number;
+        codebookSize: number;
+    };
 }
 
 interface IndexStatusPanelProps {
@@ -44,6 +52,12 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
     const [ivfNlist, setIvfNlist] = useState(100);
     const [ivfNprobe, setIvfNprobe] = useState(10);
     const [rebuildLoading, setRebuildLoading] = useState(false);
+    const [editingIvfPq, setEditingIvfPq] = useState(false);
+    const [ivfPqNlist, setIvfPqNlist] = useState(100);
+    const [ivfPqNprobe, setIvfPqNprobe] = useState(10);
+    const [ivfPqM, setIvfPqM] = useState(8);
+    const [ivfPqCodebookSize, setIvfPqCodebookSize] = useState(256);
+    const [rebuildIvfPqLoading, setRebuildIvfPqLoading] = useState(false);
     const hasFetched = useRef(false);
 
     const fetchStatus = async () => {
@@ -56,6 +70,12 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                 if (data.ivf) {
                     setIvfNlist(data.ivf.nlist || 100);
                     setIvfNprobe(data.ivf.nprobe || 10);
+                }
+                if (data.ivfpq) {
+                    setIvfPqNlist(data.ivfpq.nlist || 100);
+                    setIvfPqNprobe(data.ivfpq.nprobe || 10);
+                    setIvfPqM(data.ivfpq.m || 8);
+                    setIvfPqCodebookSize(data.ivfpq.codebookSize || 256);
                 }
             }
         } catch (error) {
@@ -99,6 +119,40 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
         }
     };
 
+    const handleRebuildIvfPq = async () => {
+        setRebuildIvfPqLoading(true);
+        try {
+            const response = await fetch('http://localhost:8080/rebuild_ivf_pq', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nlist: ivfPqNlist,
+                    nprobe: ivfPqNprobe,
+                    m: ivfPqM,
+                    codebook_size: ivfPqCodebookSize
+                }),
+            });
+            if (response.ok) {
+                setEditingIvfPq(false);
+                await fetchStatus();
+            }
+        } catch (error) {
+            console.error('Failed to rebuild IVF-PQ index:', error);
+        } finally {
+            setRebuildIvfPqLoading(false);
+        }
+    };
+
+    const handleCancelIvfPqEdit = () => {
+        setEditingIvfPq(false);
+        if (status?.ivfpq) {
+            setIvfPqNlist(status.ivfpq.nlist);
+            setIvfPqNprobe(status.ivfpq.nprobe);
+            setIvfPqM(status.ivfpq.m);
+            setIvfPqCodebookSize(status.ivfpq.codebookSize);
+        }
+    };
+
     if (!isExpanded) return null;
 
     return (
@@ -117,7 +171,7 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
             {loading && !status ? (
                 <p className="text-sm text-gray-500">Loading status...</p>
             ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     {/* BruteForce Index Status */}
                     <div className="border border-gray-200 rounded-lg p-3 bg-white">
                         <div className="flex items-center gap-2 mb-2">
@@ -206,6 +260,112 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                                     </p>
                                     <p className="text-xs text-gray-600">
                                         nprobe: <span className="font-mono font-medium">{status?.ivf?.nprobe ?? '-'}</span>
+                                    </p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* IVF-PQ Index Status */}
+                    <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${status?.ivfpq?.initialized ? 'bg-green-500' : 'bg-gray-300'}`} />
+                                <h4 className="text-sm font-medium text-gray-900">IVF-PQ Index</h4>
+                            </div>
+                            {!editingIvfPq && (
+                                <button
+                                    onClick={() => setEditingIvfPq(true)}
+                                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                                >
+                                    Edit
+                                </button>
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-xs text-gray-600">
+                                Status: <span className="font-medium">{status?.ivfpq?.initialized ? 'Initialized' : 'Not initialized'}</span>
+                            </p>
+                            <p className="text-xs text-gray-600">
+                                Vectors: <span className="font-mono font-medium">{status?.ivfpq?.vectorCount ?? 0}</span>
+                            </p>
+
+                            {editingIvfPq ? (
+                                <div className="mt-3 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-xs text-gray-600 w-20">nlist:</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={10000}
+                                            value={ivfPqNlist}
+                                            onChange={(e) => setIvfPqNlist(Number(e.target.value))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-xs text-gray-600 w-20">nprobe:</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={ivfPqNlist}
+                                            value={ivfPqNprobe}
+                                            onChange={(e) => setIvfPqNprobe(Number(e.target.value))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-xs text-gray-600 w-20">m:</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={128}
+                                            value={ivfPqM}
+                                            onChange={(e) => setIvfPqM(Number(e.target.value))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-xs text-gray-600 w-20">codebook:</label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={1024}
+                                            value={ivfPqCodebookSize}
+                                            onChange={(e) => setIvfPqCodebookSize(Number(e.target.value))}
+                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                        <button
+                                            onClick={handleRebuildIvfPq}
+                                            disabled={rebuildIvfPqLoading}
+                                            className="flex-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {rebuildIvfPqLoading ? 'Rebuilding...' : 'Rebuild Index'}
+                                        </button>
+                                        <button
+                                            onClick={handleCancelIvfPqEdit}
+                                            disabled={rebuildIvfPqLoading}
+                                            className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-xs text-gray-600">
+                                        nlist: <span className="font-mono font-medium">{status?.ivfpq?.nlist ?? '-'}</span>
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        nprobe: <span className="font-mono font-medium">{status?.ivfpq?.nprobe ?? '-'}</span>
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        m: <span className="font-mono font-medium">{status?.ivfpq?.m ?? '-'}</span>
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        codebook: <span className="font-mono font-medium">{status?.ivfpq?.codebookSize ?? '-'}</span>
                                     </p>
                                 </>
                             )}

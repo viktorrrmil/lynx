@@ -8,8 +8,9 @@ import (
 )
 
 type API struct {
-	bfIndex  *lynx.BruteForceIndex
-	ivfIndex *lynx.IVFIndex
+	bfIndex    *lynx.BruteForceIndex
+	ivfIndex   *lynx.IVFIndex
+	ivfPqIndex *lynx.IVFPQIndex
 
 	// C++ vector store wrapper
 	vectorStore *lynx.InMemoryVectorStore
@@ -61,6 +62,13 @@ type (
 	IVFConfigRequest struct {
 		Nlist  int64 `json:"nlist"`
 		Nprobe int64 `json:"nprobe"`
+	}
+
+	IVFPQConfigRequest struct {
+		Nlist        int64 `json:"nlist"`
+		Nprobe       int64 `json:"nprobe"`
+		M            int64 `json:"m"`
+		CodebookSize int64 `json:"codebook_size"`
 	}
 
 	BenchmarkRequest struct {
