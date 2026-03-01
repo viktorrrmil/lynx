@@ -12,20 +12,23 @@ This is an experimental vector search engine built to explore different indexing
 
 - **Brute Force**: Baseline exhaustive search for accuracy comparison
 - **IVF (Inverted File Index)**: Efficient approximate nearest neighbor search using clustering
+- **IVF-PQ (Inverted File Index with Product Quantization)**: Memory-efficient variant of IVF that compresses vectors using product quantization for reduced memory footprint
 
 ## Current Status
 
 🚧 **Prototype Phase** 🚧
 
 Currently implemented:
-- IVF indexing algorithm
 - Brute force search (baseline)
+- IVF indexing algorithm
+- IVF-PQ indexing algorithm (IVF with Product Quantization)
+- Benchmarking tools for performance analysis and parameter optimization
 - Core vector storage and retrieval
 - Shared index architecture
 
 Not yet implemented:
 - Application layer
-- Additional indexing algorithms (e.g., HNSW, PQ)
+- Additional indexing algorithms (e.g., HNSW)
 - Performance optimizations
 - More optimized embedding pipelines and embedding storage
 
@@ -77,6 +80,30 @@ Exhaustive search comparing query vectors against all stored vectors. Used as a 
 
 ### IVF (Inverted File Index)
 Clusters vectors into partitions (Voronoi cells) for efficient approximate nearest neighbor search. Queries only search relevant partitions, significantly reducing search space.
+
+### IVF-PQ (Inverted File Index with Product Quantization)
+Combines IVF clustering with product quantization for memory-efficient vector search. Vectors are compressed using learned codebooks while maintaining search accuracy, making it suitable for large-scale deployments with memory constraints.
+
+## Benchmarking
+
+The engine includes comprehensive benchmarking tools to evaluate and optimize algorithm performance:
+
+### Performance Benchmarking
+- **Recall Analysis**: Compare approximate search results against ground truth (brute force)
+- **Latency Measurement**: Measure search time performance across different algorithms
+- **Speedup Calculation**: Quantify performance improvements over baseline methods
+
+### IVF Parameter Optimization
+- **Parameter Sweep**: Automated testing of different `nlist` (number of clusters) and `nprobe` (clusters to search) combinations
+- **Multi-dimensional Analysis**: Evaluate trade-offs between recall, latency, and memory usage
+- **Smart Recommendations**: Algorithm suggests optimal parameter combinations based on:
+  - **Best Speedup**: Maximum performance improvement
+  - **Best Recall**: Highest search accuracy 
+  - **Best Latency**: Fastest search times
+  - **Balanced**: Optimal trade-off between recall and speed using elbow curve analysis
+
+![Benchmark Screenshot](benchmark_screenshot.png)
+![IVF Parameter Sweep](ivf_param_sweep_screenshot.png)
 
 ## Architecture
 

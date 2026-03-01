@@ -24,7 +24,7 @@ IVFPQIndex::IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t n
 std::vector<std::uint8_t> IVFPQIndex::encode_vector(const std::span<const float> &vector) const {
     std::vector<std::uint8_t> code(m_);
 
-    for (int i = 0; i < m_; i++) {
+    for (std::int64_t i = 0; i < m_; i++) {
         std::vector<float> subspace;
         for (int j = 0; j < compressed_dim_; j++) {
             subspace.push_back(vector[i * compressed_dim_ + j]);
@@ -41,7 +41,12 @@ std::vector<std::uint8_t> IVFPQIndex::encode_vector(const std::span<const float>
             }
         }
 
-        code[i] = static_cast<std::int8_t>(best_index);
+        code[i] = static_cast<std::uint8_t>(best_index);
+        if (best_index >= codebook.size()) {
+            // TODO: This should never happen, but just in case
+            std::cerr << "ERROR: Best index " << best_index << " exceeds codebook size " << codebook.size() << std::endl;
+            return {};
+        }
     }
 
     return code;
@@ -111,6 +116,11 @@ IndexType IVFPQIndex::type() const {
 // Called when setting a new vector store, called only once
 bool IVFPQIndex::train(const std::vector<std::vector<float> > &training_data, std::int64_t n_iterations,
                      float tolerance, bool populate_inverted_lists) {
+    if (dimension() % m_ != 0) {
+        std::cerr << "ERROR: Dimension must be divisible by m" << std::endl;
+        return false;
+    }
+
     // IVF training
     if (training_data.empty() || training_data[0].size() != dimension()) {
         return false;
