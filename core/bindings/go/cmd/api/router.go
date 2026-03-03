@@ -44,6 +44,9 @@ func setupRouter(api *API) *gin.Engine {
 	// Benchmark
 	router.POST("/benchmark", api.runBenchmark)
 	router.POST("/benchmark/ivf_param_sweep", api.runIVFParamSweep)
+	router.POST("/benchmark/ivf_pq_param_sweep", api.runIVFPQParamSweep)
+	router.POST("/benchmark/ivf_param_sweep/estimate", api.estimateIVFParamSweepTimeHandler)
+	router.POST("/benchmark/ivf_pq_param_sweep/estimate", api.estimateIVFPQParamSweepTimeHandler)
 
 	return router
 }

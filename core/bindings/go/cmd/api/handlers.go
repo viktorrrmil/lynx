@@ -424,6 +424,27 @@ func (api *API) runBenchmark(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{"summary": metrics.CalculateSummary(results)})
 }
 
+func (api *API) estimateIVFParamSweepTimeHandler(c *gin.Context) {
+	var request IVFParamSweepRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	api.lock.RLock()
+	vectorCount := api.vectorStore.Size()
+	api.lock.RUnlock()
+
+	estimate := estimateIVFParamSweepTime(
+		int64(len(request.Queries)),
+		int64(len(request.NlistValues)),
+		int64(len(request.NprobeValues)),
+		vectorCount,
+	)
+
+	c.IndentedJSON(200, estimate)
+}
+
 func (api *API) runIVFParamSweep(c *gin.Context) {
 	var request IVFParamSweepRequest
 	if err := c.BindJSON(&request); err != nil {
@@ -591,6 +612,215 @@ func (api *API) runIVFParamSweep(c *gin.Context) {
 	}
 
 	c.IndentedJSON(200, IVFParamSweepResponse{
+		Results:      results,
+		BestSpeedup:  bestSpeedup,
+		BestRecall:   bestRecall,
+		BestLatency:  bestLatency,
+		BestBalanced: bestBalanced,
+	})
+}
+
+func (api *API) estimateIVFPQParamSweepTimeHandler(c *gin.Context) {
+	var request IVFPQParamSweepRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	api.lock.RLock()
+	vectorCount := api.vectorStore.Size()
+	api.lock.RUnlock()
+
+	estimate := estimateIVFPQParamSweepTime(
+		int64(len(request.Queries)),
+		int64(len(request.NlistValues)),
+		int64(len(request.NprobeValues)),
+		int64(len(request.MValues)),
+		int64(len(request.CodebookSizeValues)),
+		vectorCount,
+	)
+
+	c.IndentedJSON(200, estimate)
+}
+
+func (api *API) runIVFPQParamSweep(c *gin.Context) {
+	var request IVFPQParamSweepRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(request.Queries) == 0 {
+		c.JSON(400, gin.H{"error": "queries cannot be empty"})
+		return
+	}
+
+	if len(request.NlistValues) == 0 || len(request.NprobeValues) == 0 {
+		c.JSON(400, gin.H{"error": "nlist_values and nprobe_values cannot be empty"})
+		return
+	}
+
+	if len(request.MValues) == 0 || len(request.CodebookSizeValues) == 0 {
+		c.JSON(400, gin.H{"error": "mvalues and codebook_size_values cannot be empty"})
+		return
+	}
+
+	embeddedQueries := make([][]float32, len(request.Queries))
+	for i, query := range request.Queries {
+		emb, err := getEmbeddings(query)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get embeddings for query: " + err.Error()})
+			return
+		}
+		embeddedQueries[i] = emb
+	}
+
+	api.lock.RLock()
+	defer api.lock.RUnlock()
+
+	bfResults := make([][]lynx.SearchResult, len(embeddedQueries))
+	var totalBfTime time.Duration
+	for i, emb := range embeddedQueries {
+		startBF := time.Now()
+		results, err := api.bfIndex.Search(emb, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Brute-force search failed: " + err.Error()})
+			return
+		}
+		totalBfTime += time.Since(startBF)
+		bfResults[i] = results
+	}
+	meanBfLatency := float64(totalBfTime.Microseconds()) / float64(len(embeddedQueries)) / 1000.0
+
+	var results []IVFPQParamResult
+
+	for _, nlist := range request.NlistValues {
+		for _, m := range request.MValues {
+			for _, codebookSize := range request.CodebookSizeValues {
+				tempIVFPQ := lynx.NewIVFPQIndex(api.ivfPqIndex.Metric(), nlist, 1, m, codebookSize)
+				tempIVFPQ.SetVectorStore(api.vectorStore)
+				if err := tempIVFPQ.UpdateVectors(); err != nil {
+					c.JSON(500, gin.H{"error": "Failed to update vectors for temp IVFPQ index: " + err.Error()})
+					tempIVFPQ.Delete()
+					return
+				}
+
+				for _, nprobe := range request.NprobeValues {
+					if nprobe > nlist {
+						continue
+					}
+
+					tempIVFPQ.SetNProbe(nprobe)
+
+					var totalLatency time.Duration
+					var totalRecall float64
+
+					for i, emb := range embeddedQueries {
+						startIVFPQ := time.Now()
+						ivfpqRes, err := tempIVFPQ.Search(emb, int64(request.TopK))
+						if err != nil {
+							c.JSON(500, gin.H{"error": "IVFPQ search failed: " + err.Error()})
+							tempIVFPQ.Delete()
+							return
+						}
+						totalLatency += time.Since(startIVFPQ)
+						totalRecall += metrics.CalculateRecall(bfResults[i], ivfpqRes, int64(request.TopK))
+					}
+
+					meanLatencyMs := float64(totalLatency.Microseconds()) / float64(len(embeddedQueries)) / 1000.0
+					meanRecall := totalRecall / float64(len(embeddedQueries))
+					speedup := meanBfLatency / meanLatencyMs
+
+					results = append(results, IVFPQParamResult{
+						Nlist:         nlist,
+						Nprobe:        nprobe,
+						M:             m,
+						CodebookSize:  codebookSize,
+						MeanRecall:    meanRecall,
+						MeanLatencyMs: meanLatencyMs,
+						Speedup:       speedup,
+					})
+				}
+
+				tempIVFPQ.Delete()
+			}
+		}
+	}
+
+	bestSpeedup := results[0]
+	bestScore := 0.0
+	for _, r := range results {
+		score := r.MeanRecall * r.Speedup
+		if score > bestScore {
+			bestScore = score
+			bestSpeedup = r
+		}
+	}
+
+	bestRecall := results[0]
+	for _, r := range results {
+		if r.MeanRecall > bestRecall.MeanRecall {
+			bestRecall = r
+		}
+	}
+
+	bestLatency := results[0]
+	for _, r := range results {
+		if r.MeanLatencyMs < bestLatency.MeanLatencyMs {
+			bestLatency = r
+		}
+	}
+
+	// For balanced: finding the "elbow" of the recall vs latency curve
+	// This is the point where recall stops improving rapidly relative to latency cost
+
+	minLatency := results[0].MeanLatencyMs
+	maxLatency := results[0].MeanLatencyMs
+	minRecall := results[0].MeanRecall
+	maxRecall := results[0].MeanRecall
+
+	for _, r := range results {
+		if r.MeanLatencyMs < minLatency {
+			minLatency = r.MeanLatencyMs
+		}
+		if r.MeanLatencyMs > maxLatency {
+			maxLatency = r.MeanLatencyMs
+		}
+		if r.MeanRecall < minRecall {
+			minRecall = r.MeanRecall
+		}
+		if r.MeanRecall > maxRecall {
+			maxRecall = r.MeanRecall
+		}
+	}
+
+	latencyRange := maxLatency - minLatency
+	recallRange := maxRecall - minRecall
+
+	if latencyRange == 0 {
+		latencyRange = 1
+	}
+	if recallRange == 0 {
+		recallRange = 1
+	}
+
+	bestBalanced := results[0]
+	bestKneeScore := -1000.0
+
+	for _, r := range results {
+		normLatency := (r.MeanLatencyMs - minLatency) / latencyRange
+		normRecall := (r.MeanRecall - minRecall) / recallRange
+
+		// Knee score: how far above the diagonal line
+		kneeScore := normRecall - normLatency
+
+		if kneeScore > bestKneeScore {
+			bestKneeScore = kneeScore
+			bestBalanced = r
+		}
+	}
+
+	c.IndentedJSON(200, IVFPQParamSweepResponse{
 		Results:      results,
 		BestSpeedup:  bestSpeedup,
 		BestRecall:   bestRecall,

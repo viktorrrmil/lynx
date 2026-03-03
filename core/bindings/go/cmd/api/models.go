@@ -92,11 +92,38 @@ type (
 		Speedup       float64 `json:"speedup"`
 	}
 
+	IVFPQParamSweepRequest struct {
+		NlistValues        []int64  `json:"nlist_values"`
+		NprobeValues       []int64  `json:"nprobe_values"`
+		MValues            []int64  `json:"m_values"`
+		CodebookSizeValues []int64  `json:"codebook_size_values"`
+		Queries            []string `json:"queries"`
+		TopK               int      `json:"top_k"`
+	}
+
 	IVFParamSweepResponse struct {
 		Results      []IVFParamResult `json:"results"`
 		BestSpeedup  IVFParamResult   `json:"best_speedup"`
 		BestRecall   IVFParamResult   `json:"best_recall"`
 		BestLatency  IVFParamResult   `json:"best_latency"`
 		BestBalanced IVFParamResult   `json:"best_balanced"`
+	}
+
+	IVFPQParamResult struct {
+		Nlist         int64   `json:"nlist"`
+		Nprobe        int64   `json:"nprobe"`
+		M             int64   `json:"m"`
+		CodebookSize  int64   `json:"codebook_size"`
+		MeanRecall    float64 `json:"mean_recall"`
+		MeanLatencyMs float64 `json:"mean_latency_ms"`
+		Speedup       float64 `json:"speedup"`
+	}
+
+	IVFPQParamSweepResponse struct {
+		Results      []IVFPQParamResult `json:"results"`
+		BestSpeedup  IVFPQParamResult   `json:"best_speedup"`
+		BestRecall   IVFPQParamResult   `json:"best_recall"`
+		BestLatency  IVFPQParamResult   `json:"best_latency"`
+		BestBalanced IVFPQParamResult   `json:"best_balanced"`
 	}
 )

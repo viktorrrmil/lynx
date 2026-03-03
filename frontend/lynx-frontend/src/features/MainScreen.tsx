@@ -350,40 +350,44 @@ const MainScreen = () => {
                                     </div>
                                 )}
 
-                                {/* Side by Side Results - Horizontally Scrollable */}
-                                <div className="overflow-x-auto">
-                                    <div className="flex gap-6 min-w-max">
-                                        {bfActive && (
-                                            <div className="w-80 flex-shrink-0">
-                                                <ResultsColumn
-                                                    query={query}
-                                                    title="BruteForce Index"
-                                                    results={bfResults.results}
-                                                    searchTime={bfResults.searchTime}
-                                                />
-                                            </div>
-                                        )}
-                                        {ivfActive && (
-                                            <div className="w-80 flex-shrink-0">
-                                                <ResultsColumn
-                                                    query={query}
-                                                    title="IVF Index"
-                                                    results={ivfResults.results}
-                                                    searchTime={ivfResults.searchTime}
-                                                />
-                                            </div>
-                                        )}
-                                        {ivfPqActive && (
-                                            <div className="w-80 flex-shrink-0">
-                                                <ResultsColumn
-                                                    query={query}
-                                                    title="IVF-PQ Index"
-                                                    results={ivfPqResults.results}
-                                                    searchTime={ivfPqResults.searchTime}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
+                                {/* Side by Side Results - dynamically adjust columns based on active count */}
+                                <div className={`grid gap-6 ${
+                                    [bfActive, ivfActive, ivfPqActive].filter(Boolean).length === 1 
+                                        ? 'grid-cols-1' 
+                                        : [bfActive, ivfActive, ivfPqActive].filter(Boolean).length === 2 
+                                            ? 'grid-cols-1 md:grid-cols-2' 
+                                            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                                }`}>
+                                    {bfActive && (
+                                        <div className="w-full">
+                                            <ResultsColumn
+                                                query={query}
+                                                title="BruteForce Index"
+                                                results={bfResults.results}
+                                                searchTime={bfResults.searchTime}
+                                            />
+                                        </div>
+                                    )}
+                                    {ivfActive && (
+                                        <div className="w-full">
+                                            <ResultsColumn
+                                                query={query}
+                                                title="IVF Index"
+                                                results={ivfResults.results}
+                                                searchTime={ivfResults.searchTime}
+                                            />
+                                        </div>
+                                    )}
+                                    {ivfPqActive && (
+                                        <div className="w-full">
+                                            <ResultsColumn
+                                                query={query}
+                                                title="IVF-PQ Index"
+                                                results={ivfPqResults.results}
+                                                searchTime={ivfPqResults.searchTime}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  port-cleanup:
+    image: alpine:latest
+    container_name: lynx-port-cleanup
+    network_mode: host
+    command: >
+      sh -c "
+        apk add --no-cache lsof &&
+        echo 'Checking ports 5433, 5000, 8080, 5173...' &&
+        for port in 5433 5000 8080 5173; do
+          pids=$$(lsof -ti:\$$port 2>/dev/null || true);
+          if [ -n \"\$$pids\" ]; then
+            echo \"Killing processes on port \$$port: \$$pids\";
+            kill -9 \$$pids 2>/dev/null || true;
+          else
+            echo \"Port \$$port is free\";
+          fi;
+        done &&
+        echo 'Port cleanup complete!'
+      "
+    profiles:
+      - cleanup
   postgres:
     image: pgvector/pgvector:pg16
     environment:
