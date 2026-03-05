@@ -75,7 +75,7 @@ std::priority_queue<std::pair<float, size_t> > HNSWIndex::search_layer(
     return result;
 }
 
-std::vector<size_t> HNSWIndex::select_neighbors(std::priority_queue<std::pair<float, size_t> > &candidates,
+std::vector<size_t> HNSWIndex::select_neighbors(std::priority_queue<std::pair<float, size_t> > candidates,
                                                 int max_neighbors) const {
     std::vector<size_t> result;
     while (!candidates.empty()) {
@@ -84,7 +84,7 @@ std::vector<size_t> HNSWIndex::select_neighbors(std::priority_queue<std::pair<fl
     }
 
     std::reverse(result.begin(), result.end());
-    if (result.size() > max_neighbors) {
+    if (result.size() > static_cast<size_t>(max_neighbors)) {
         result.resize(max_neighbors);
     }
 
@@ -99,7 +99,7 @@ void HNSWIndex::prune_neighbors(size_t node_id, int layer, int max_connections) 
     for (size_t neighbor: neighbors) {
         float dist = compute_distance(distance_metric_, node_vector, vector_store_->get_vector(neighbor));
         heap.emplace(dist, neighbor);
-        if (heap.size() > max_connections) {
+        if (heap.size() > static_cast<size_t>(max_connections)) {
             heap.pop();
         }
     }

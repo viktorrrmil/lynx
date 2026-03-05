@@ -93,10 +93,10 @@ const BenchmarkSection = () => {
 
     // IVF-PQ Parameter Sweep state
     const [showIVFPQParamSweep, setShowIVFPQParamSweep] = useState(false);
-    const [ivfPqNlistValues, setIvfPqNlistValues] = useState("4, 8, 16, 32. 40, 70, 100, 150, 200, 300, 400, 500");
-    const [ivfPqNprobeValues, setIvfPqNprobeValues] = useState("1, 2, 4, 8, 16, 20, 32, 40, 64, 100, 150, 200");
-    const [ivfPqMValues, setIvfPqMValues] = useState("8, 16, 32, 64, 128");
-    const [ivfPqCodebookValues, setIvfPqCodebookValues] = useState("32, 64, 128, 256, 512, 1024, 2048");
+    const [ivfPqNlistValues, setIvfPqNlistValues] = useState("4, 8, 16, 32");
+    const [ivfPqNprobeValues, setIvfPqNprobeValues] = useState("1, 2, 4, 8, 16");
+    const [ivfPqMValues, setIvfPqMValues] = useState("8, 16, 32");
+    const [ivfPqCodebookValues, setIvfPqCodebookValues] = useState("32, 64");
     const [ivfPqSweepTopK, setIvfPqSweepTopK] = useState(10);
     const [ivfPqSweepQueries, setIvfPqSweepQueries] = useState(DEFAULT_QUERIES);
     const [ivfPqSweepLoading, setIvfPqSweepLoading] = useState(false);

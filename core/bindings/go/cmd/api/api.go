@@ -46,10 +46,14 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 	ivfPqIndex := lynx.NewIVFPQIndex(metric, 100, 10, 4, 8)
 	ivfPqIndex.SetVectorStore(vectorStore)
 
+	hnswIndex := lynx.NewHNSWIndex(metric, 16, 200, 10)
+	hnswIndex.SetVectorStore(vectorStore)
+
 	return &API{
 		bfIndex:    bfIndex,
 		ivfIndex:   ivfIndex,
 		ivfPqIndex: ivfPqIndex,
+		hnswIndex:  hnswIndex,
 
 		vectorStore: vectorStore,
 		vectorCache: cache,

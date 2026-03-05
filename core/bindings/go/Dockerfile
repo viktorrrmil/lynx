@@ -19,10 +19,12 @@ RUN g++ -std=c++20 -shared -fPIC -fopenmp -O3 \
     /app/wrapper/bruteforce_index_wrapper.cpp \
     /app/wrapper/ivf_index_wrapper.cpp \
     /app/wrapper/ivf_pq_index_wrapper.cpp \
+    /app/wrapper/hnsw_index_wrapper.cpp \
     /app/wrapper/in_memory_vector_store_wrapper.cpp \
     /app/src/bruteforce_index.cpp \
     /app/src/ivf_index.cpp \
     /app/src/ivf_pq_index.cpp \
+    /app/src/hnsw_index.cpp \
     /app/src/in_memory_vector_store.cpp \
     /app/src/serialization.cpp \
     /app/src/index_loader.cpp \

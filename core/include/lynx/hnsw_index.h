@@ -59,6 +59,18 @@ public:
 
     int dimension() const;
 
+    int M() const {
+        return M_;
+    }
+
+    int ef_construction() const {
+        return ef_construction_;
+    }
+
+    int ef_search() const {
+        return ef_search_;
+    }
+
     std::priority_queue<std::pair<float, size_t> > search_layer(
         const std::span<const float> &query,
         std::vector<size_t> entry_points,
@@ -68,9 +80,15 @@ public:
 
     void insert(size_t id, const std::span<const float>& vector);
 
-    std::vector<size_t> select_neighbors(std::priority_queue<std::pair<float, size_t> > &candidates, int max_neighbors) const;
+    std::vector<size_t> select_neighbors(std::priority_queue<std::pair<float, size_t> > candidates, int max_neighbors) const;
 
     void prune_neighbors(size_t node_id, int layer, int max_connections);
+
+    // Build or rebuild the HNSW graph from the vector store
+    bool build();
+
+    // Clear the graph structure
+    void clear();
 };
 
 #endif //LYNX_HNSW_INDEX_H

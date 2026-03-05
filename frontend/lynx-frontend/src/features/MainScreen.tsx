@@ -15,19 +15,22 @@ const MainScreen = () => {
     const [bfResults, setBfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [ivfResults, setIvfResults] = useState<IndexResults>({results: [], searchTime: null});
     const [ivfPqResults, setIvfPqResults] = useState<IndexResults>({results: [], searchTime: null});
+    const [hnswResults, setHnswResults] = useState<IndexResults>({results: [], searchTime: null});
     const [k, setK] = useState(10);
     const [bfActive, setBfActive] = useState(true);
     const [ivfActive, setIvfActive] = useState(true);
     const [ivfPqActive, setIvfPqActive] = useState(true);
+    const [hnswActive, setHnswActive] = useState(true);
     const [ivfTrackRecall, setIvfTrackRecall] = useState(false);
     const [ivfPqTrackRecall, setIvfPqTrackRecall] = useState(false);
+    const [hnswTrackRecall, setHnswTrackRecall] = useState(false);
     const [indexStatusExpanded, setIndexStatusExpanded] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('search');
     const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
-        if (!bfActive && !ivfActive && !ivfPqActive) return; // Don't search if no indexes are active
+        if (!bfActive && !ivfActive && !ivfPqActive && !hnswActive) return; // Don't search if no indexes are active
 
         setLoading(true);
 
@@ -71,13 +74,25 @@ const MainScreen = () => {
                 promises.push(null);
             }
 
-            const [bfResponse, ivfResponse, ivfPqResponse] = await Promise.all(promises);
+            if (hnswActive) {
+                promises.push(
+                    fetch('http://localhost:8080/hnsw_search', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({query, top_k: k, track_recall: hnswTrackRecall}),
+                    })
+                );
+            } else {
+                promises.push(null);
+            }
+
+            const [bfResponse, ivfResponse, ivfPqResponse, hnswResponse] = await Promise.all(promises);
 
             if (bfResponse && bfResponse.ok) {
                 const data = await bfResponse.json();
                 setBfResults({
                     results: data.results || [],
-                    searchTime: data.search_time_ms
+                    searchTime: data.search_time_ns
                 });
             } else if (!bfActive) {
                 // Clear results if index is not active
@@ -88,7 +103,7 @@ const MainScreen = () => {
                 const data = await ivfResponse.json();
                 setIvfResults({
                     results: data.results || [],
-                    searchTime: data.search_time_ms,
+                    searchTime: data.search_time_ns,
                     recall: data.recall !== undefined ? data.recall : undefined
                 });
             } else if (!ivfActive) {
@@ -100,12 +115,24 @@ const MainScreen = () => {
                 const data = await ivfPqResponse.json();
                 setIvfPqResults({
                     results: data.results || [],
-                    searchTime: data.search_time_ms,
+                    searchTime: data.search_time_ns,
                     recall: data.recall !== undefined ? data.recall : undefined
                 });
             } else if (!ivfPqActive) {
                 // Clear results if index is not active
                 setIvfPqResults({results: [], searchTime: null});
+            }
+
+            if (hnswResponse && hnswResponse.ok) {
+                const data = await hnswResponse.json();
+                setHnswResults({
+                    results: data.results || [],
+                    searchTime: data.search_time_ns,
+                    recall: data.recall !== undefined ? data.recall : undefined
+                });
+            } else if (!hnswActive) {
+                // Clear results if index is not active
+                setHnswResults({results: [], searchTime: null});
             }
         } catch (error) {
             console.error('Search error:', error);
@@ -263,6 +290,29 @@ const MainScreen = () => {
                                             PQ Recall {ivfPqTrackRecall ? '✓' : '○'}
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() => setHnswActive(!hnswActive)}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                            hnswActive
+                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        HNSW {hnswActive ? '✓' : '○'}
+                                    </button>
+                                    {hnswActive && (
+                                        <button
+                                            onClick={() => setHnswTrackRecall(!hnswTrackRecall)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                                hnswTrackRecall
+                                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                            title="Track HNSW Recall@k"
+                                        >
+                                            HNSW Recall {hnswTrackRecall ? '✓' : '○'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                             <div className="space-y-6">
@@ -272,7 +322,7 @@ const MainScreen = () => {
                                         placeholder="Enter search query..."
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                         className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded
                                              focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
                                     />
@@ -286,40 +336,98 @@ const MainScreen = () => {
                                     />
                                     <button
                                         onClick={handleSearch}
-                                        disabled={loading || (!bfActive && !ivfActive && !ivfPqActive)}
+                                        disabled={loading || (!bfActive && !ivfActive && !ivfPqActive && !hnswActive)}
                                         className="px-6 py-2 text-sm font-medium text-white bg-gray-900
                                              rounded hover:bg-gray-800 disabled:bg-gray-300
                                              disabled:cursor-not-allowed transition-colors"
                                     >
                                         {loading ? 'Searching...' :
-                                         !bfActive && !ivfActive && !ivfPqActive ? 'Select Index' :
+                                         !bfActive && !ivfActive && !ivfPqActive && !hnswActive ? 'Select Index' :
                                          'Search'}
                                     </button>
                                 </div>
 
-                                {/* Performance Summary */}
-                                {(bfResults.searchTime !== null && bfResults.searchTime !== undefined && bfResults.searchTime === 0)
-                                    && (ivfResults.searchTime !== null && ivfResults.searchTime !== undefined && ivfResults.searchTime === 0) && (
-                                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                            <p className="text-sm text-gray-900">
-                                                Both indexes returned results instantly. No performance difference to report.
-                                            </p>
-                                        </div>
-                                    )}
+                                {/* Performance Ranking Visualization */}
+                                {(() => {
+                                    // Collect active indexes with valid search times
+                                    const indexTimes: { name: string; time: number; color: string }[] = [];
 
-                                {(bfResults.searchTime !== null && bfResults.searchTime !== undefined && bfResults.searchTime !== 0)
-                                    && (ivfResults.searchTime !== null && ivfResults.searchTime !== undefined && ivfResults.searchTime !== 0) && (
+                                    if (bfActive && bfResults.searchTime !== null && bfResults.searchTime !== undefined && bfResults.searchTime > 0) {
+                                        indexTimes.push({ name: 'BruteForce', time: bfResults.searchTime, color: 'bg-gray-600' });
+                                    }
+                                    if (ivfActive && ivfResults.searchTime !== null && ivfResults.searchTime !== undefined && ivfResults.searchTime > 0) {
+                                        indexTimes.push({ name: 'IVF', time: ivfResults.searchTime, color: 'bg-blue-600' });
+                                    }
+                                    if (ivfPqActive && ivfPqResults.searchTime !== null && ivfPqResults.searchTime !== undefined && ivfPqResults.searchTime > 0) {
+                                        indexTimes.push({ name: 'IVF-PQ', time: ivfPqResults.searchTime, color: 'bg-purple-600' });
+                                    }
+                                    if (hnswActive && hnswResults.searchTime !== null && hnswResults.searchTime !== undefined && hnswResults.searchTime > 0) {
+                                        indexTimes.push({ name: 'HNSW', time: hnswResults.searchTime, color: 'bg-green-600' });
+                                    }
+
+                                    if (indexTimes.length < 2) return null;
+
+                                    // Sort by time (fastest first)
+                                    indexTimes.sort((a, b) => a.time - b.time);
+                                    const slowestTime = indexTimes[indexTimes.length - 1].time;
+
+                                    // Format time display (convert ns to ms for readability)
+                                    const formatTime = (ns: number) => {
+                                        if (ns >= 1_000_000) return `${(ns / 1_000_000).toFixed(2)}ms`;
+                                        if (ns >= 1_000) return `${(ns / 1_000).toFixed(2)}µs`;
+                                        return `${ns.toFixed(0)}ns`;
+                                    };
+
+                                    return (
                                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                            <p className="text-sm text-gray-900">
-                                                <span className="font-medium">Performance:</span> IVF is{' '}
-                                                <span className="font-mono font-medium">
-                                                     {(bfResults.searchTime / ivfResults.searchTime).toFixed(2)}x
+                                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Performance Ranking</p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {indexTimes.map((index, i) => {
+                                                    const isFirst = i === 0;
+                                                    const isLast = i === indexTimes.length - 1;
+
+                                                    return (
+                                                        <div key={index.name} className="flex items-center gap-2">
+                                                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                                                                isFirst ? 'bg-green-100 border border-green-300' : 
+                                                                isLast ? 'bg-red-50 border border-red-200' : 
+                                                                'bg-white border border-gray-200'
+                                                            }`}>
+                                                                <div className={`w-2 h-2 rounded-full ${index.color}`} />
+                                                                <span className={`text-sm font-medium ${
+                                                                    isFirst ? 'text-green-800' : 
+                                                                    isLast ? 'text-red-700' : 
+                                                                    'text-gray-700'
+                                                                }`}>
+                                                                    {index.name}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500 font-mono">
+                                                                    {formatTime(index.time)}
+                                                                </span>
+                                                            </div>
+                                                            {i < indexTimes.length - 1 && (
+                                                                <div className="flex items-center gap-1 text-gray-400">
+                                                                    <span className="text-lg font-light">»</span>
+                                                                    <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                                                                        {(indexTimes[i + 1].time / index.time).toFixed(1)}x
+                                                                    </span>
+                                                                    <span className="text-lg font-light">»</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                Fastest to slowest • {indexTimes[0].name} is{' '}
+                                                <span className="font-mono font-medium text-green-700">
+                                                    {(slowestTime / indexTimes[0].time).toFixed(1)}x
                                                 </span>
-                                                {' '}{bfResults.searchTime > ivfResults.searchTime ? 'faster' : 'slower'} than
-                                                BruteForce
+                                                {' '}faster than {indexTimes[indexTimes.length - 1].name}
                                             </p>
                                         </div>
-                                    )}
+                                    );
+                                })()}
 
                                 {/* Recall Display */}
                                 {ivfActive && ivfTrackRecall && ivfResults.recall !== undefined && ivfResults.recall !== -1 && (
@@ -350,13 +458,29 @@ const MainScreen = () => {
                                     </div>
                                 )}
 
+                                {hnswActive && hnswTrackRecall && hnswResults.recall !== undefined && hnswResults.recall !== -1 && (
+                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                                        <p className="text-sm text-gray-900">
+                                            <span className="font-medium">HNSW Recall@{k}:</span>{' '}
+                                            <span className="font-mono font-medium text-blue-700">
+                                                {(hnswResults.recall * 100).toFixed(2)}%
+                                            </span>
+                                            <span className="text-gray-600 ml-2">
+                                                ({hnswResults.recall.toFixed(4)})
+                                            </span>
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Side by Side Results - dynamically adjust columns based on active count */}
-                                <div className={`grid gap-6 ${
-                                    [bfActive, ivfActive, ivfPqActive].filter(Boolean).length === 1 
-                                        ? 'grid-cols-1' 
-                                        : [bfActive, ivfActive, ivfPqActive].filter(Boolean).length === 2 
-                                            ? 'grid-cols-1 md:grid-cols-2' 
-                                            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                                <div className={`grid gap-4 ${
+                                    (() => {
+                                        const activeCount = [bfActive, ivfActive, ivfPqActive, hnswActive].filter(Boolean).length;
+                                        if (activeCount === 1) return 'grid-cols-1';
+                                        if (activeCount === 2) return 'grid-cols-1 md:grid-cols-2';
+                                        if (activeCount === 3) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+                                        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
+                                    })()
                                 }`}>
                                     {bfActive && (
                                         <div className="w-full">
@@ -385,6 +509,16 @@ const MainScreen = () => {
                                                 title="IVF-PQ Index"
                                                 results={ivfPqResults.results}
                                                 searchTime={ivfPqResults.searchTime}
+                                            />
+                                        </div>
+                                    )}
+                                    {hnswActive && (
+                                        <div className="w-full">
+                                            <ResultsColumn
+                                                query={query}
+                                                title="HNSW Index"
+                                                results={hnswResults.results}
+                                                searchTime={hnswResults.searchTime}
                                             />
                                         </div>
                                     )}

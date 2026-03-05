@@ -27,3 +27,10 @@
 - Added IVF param sweep benchmarking to evaluate the impact of different nlist and nprobe values on search performance and accuracy.
 
 ![ivf_param_sweep_screenshot.png](ivf_param_sweep_screenshot.png)
+
+### March 5, 2025
+
+- Added IVF-PQ index (added earlier, just forgot to add to the changelog)
+- Added HNSW index
+
+![speedup_rankings.png](speedup_rankings.png)
