@@ -31,6 +31,7 @@
 ### March 5, 2025
 
 - Added IVF-PQ index (added earlier, just forgot to add to the changelog)
-- Added HNSW index
+- Added initial HNSW index implementation (work in progress).
+- Docker build currently fails and recall issues are still under investigation.
 
 ![speedup_rankings.png](speedup_rankings.png)
