@@ -6,6 +6,7 @@
 #define LYNX_HNSW_INDEX_H
 
 #include <queue>
+#include <random>
 
 #include "vector_index.h"
 
@@ -13,6 +14,8 @@ struct Node {
     std::vector<std::vector<size_t> > neighbors;
     int top_layer;
 };
+
+const int NO_ENTRY_POINT = -1;
 
 class HNSWIndex : public VectorIndex {
 private:
@@ -29,6 +32,8 @@ private:
     int max_layer_;
     std::vector<Node> nodes_;
 
+    std::mt19937 rng_;
+    std::uniform_real_distribution<float> uniform_dist_;
 public:
     HNSWIndex() : distance_metric_(DistanceMetric::L2) {
     }
@@ -62,6 +67,10 @@ public:
     ) const;
 
     void insert(size_t id, const std::span<const float>& vector);
+
+    std::vector<size_t> select_neighbors(std::priority_queue<std::pair<float, size_t> > &candidates, int max_neighbors) const;
+
+    void prune_neighbors(size_t node_id, int layer, int max_connections);
 };
 
 #endif //LYNX_HNSW_INDEX_H
