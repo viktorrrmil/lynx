@@ -27,7 +27,7 @@ func (i *IVFPQIndex) Delete() {
 
 func (i *IVFPQIndex) Search(query []float32, k int64) ([]SearchResult, error) {
 	if i.ptr == nil {
-		return nil, errors.New("IVFPQIndex pointer is nil")
+		return nil, errors.New("IVFPQIndex is not initialized")
 	}
 
 	if len(query) == 0 {
@@ -48,7 +48,7 @@ func (i *IVFPQIndex) Search(query []float32, k int64) ([]SearchResult, error) {
 	defer C.IVFPQIndex_free_search_results(cResults)
 
 	if cResults == nil {
-		return nil, errors.New("search failed in IVFPQIndex")
+		return nil, errors.New("IVFPQIndex search failed")
 	}
 
 	count := int(cResults.count)

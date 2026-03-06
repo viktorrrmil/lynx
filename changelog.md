@@ -27,3 +27,19 @@
 - Added IVF param sweep benchmarking to evaluate the impact of different nlist and nprobe values on search performance and accuracy.
 
 ![ivf_param_sweep_screenshot.png](ivf_param_sweep_screenshot.png)
+
+### March 5, 2025
+
+- Added IVF-PQ index (added earlier, just forgot to add to the changelog)
+- Added initial HNSW index implementation (work in progress).
+- Docker build currently fails and recall issues are still under investigation.
+
+![speedup_rankings.png](speedup_rankings.png)
+
+### March 6, 2025
+
+- Finished HNSW implementation and added it to the benchmarking tool. HNSW shows significant speedup compared to IVF and BruteForce, especially for larger datasets.
+- Added comprehensive benchmark for all four current indexing methods which helps to evaluate the performance and accuracy of each indexing method.
+- Fix the cleanup ports .sh script
+
+![comprehensive_benchmark.png](comprehensive_benchmark.png)

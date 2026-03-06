@@ -17,6 +17,7 @@ func setupRouter(api *API) *gin.Engine {
 	}))
 
 	router.GET("/info", api.getInfo)
+	router.GET("/is_ready", api.isReady)
 
 	// Vector Store endpoints
 	router.POST("/vector_store/add", api.addToVectorStore)
@@ -33,6 +34,10 @@ func setupRouter(api *API) *gin.Engine {
 	router.POST("/ivf_pq_search", api.ivfPqSearch)
 	router.POST("/rebuild_ivf_pq", api.configureIVFPQ)
 
+	// HNSW endpoints
+	router.POST("/hnsw_search", api.hnswSearch)
+	router.POST("/rebuild_hnsw", api.configureHNSW)
+
 	// Vector Cache endpoints
 	router.POST("/vector_cache/save", api.saveVectorCache)
 	router.POST("/vector_cache/load", api.loadVectorCache)
@@ -43,10 +48,11 @@ func setupRouter(api *API) *gin.Engine {
 
 	// Benchmark
 	router.POST("/benchmark", api.runBenchmark)
+	router.POST("/benchmark/comprehensive", api.runComprehensiveBenchmark)
 	router.POST("/benchmark/ivf_param_sweep", api.runIVFParamSweep)
 	router.POST("/benchmark/ivf_pq_param_sweep", api.runIVFPQParamSweep)
-	router.POST("/benchmark/ivf_param_sweep/estimate", api.estimateIVFParamSweepTimeHandler)
-	router.POST("/benchmark/ivf_pq_param_sweep/estimate", api.estimateIVFPQParamSweepTimeHandler)
+	//router.POST("/benchmark/ivf_param_sweep/estimate", api.estimateIVFParamSweepTimeHandler)
+	//router.POST("/benchmark/ivf_pq_param_sweep/estimate", api.estimateIVFPQParamSweepTimeHandler)
 
 	return router
 }

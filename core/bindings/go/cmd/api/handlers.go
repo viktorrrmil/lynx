@@ -11,6 +11,47 @@ import (
 
 // Helper functions to reduce code duplication
 
+func (api *API) isReady(c *gin.Context) {
+	if api == nil || api.vectorStore == nil || api.pgStore == nil {
+		c.JSON(503, gin.H{
+			"ready":   false,
+			"message": "API or dependencies not initialized",
+		})
+		return
+	}
+
+	api.indexesReadyLock.RLock()
+	ready := api.indexesReady
+	api.indexesReadyLock.RUnlock()
+
+	if !ready {
+		c.JSON(503, gin.H{
+			"ready":   false,
+			"message": "Indexes are still building in the background",
+			"status": gin.H{
+				"bf_ready":     api.bfIndex.IsInitialized(),
+				"ivf_ready":    api.ivfIndex.IsInitialized(),
+				"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
+				"hnsw_ready":   api.hnswIndex.IsBuilt(),
+				"vector_count": api.vectorStore.Size(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"ready":   true,
+		"message": "All indexes are ready",
+		"status": gin.H{
+			"bf_ready":     api.bfIndex.IsInitialized(),
+			"ivf_ready":    api.ivfIndex.IsInitialized(),
+			"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
+			"hnsw_ready":   api.hnswIndex.IsBuilt(),
+			"vector_count": api.vectorStore.Size(),
+		},
+	})
+}
+
 func (api *API) enrichResultsWithText(results []lynx.SearchResult) []map[string]interface{} {
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
@@ -74,7 +115,7 @@ func (api *API) bfSearch(c *gin.Context) {
 
 	c.IndentedJSON(200, gin.H{
 		"results":        api.enrichResultsWithText(results),
-		"search_time_ms": searchTime.Milliseconds(),
+		"search_time_ns": searchTime.Nanoseconds(),
 		"index_type":     "bruteforce",
 		"index_size":     api.vectorStore.Size(),
 	})
@@ -113,7 +154,7 @@ func (api *API) ivfSearch(c *gin.Context) {
 
 	c.IndentedJSON(200, gin.H{
 		"results":        api.enrichResultsWithText(results),
-		"search_time_ms": searchTime.Milliseconds(),
+		"search_time_ns": searchTime.Nanoseconds(),
 		"index_type":     "ivf",
 		"index_size":     api.ivfIndex.Size(),
 		"recall":         recall,
@@ -153,9 +194,49 @@ func (api *API) ivfPqSearch(c *gin.Context) {
 
 	c.IndentedJSON(200, gin.H{
 		"results":        api.enrichResultsWithText(results),
-		"search_time_ms": searchTime.Milliseconds(),
+		"search_time_ns": searchTime.Nanoseconds(),
 		"index_type":     "ivfpq",
 		"index_size":     api.ivfPqIndex.Size(),
+		"recall":         recall,
+	})
+}
+
+func (api *API) hnswSearch(c *gin.Context) {
+	var request SearchRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	api.lock.RLock()
+	defer api.lock.RUnlock()
+
+	embeddedQuery, err := getEmbeddings(request.Query)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	start := time.Now()
+	results, err := api.hnswIndex.Search(embeddedQuery, request.TopK)
+	searchTime := time.Since(start)
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	recall, err := api.calculateRecallIfRequested(embeddedQuery, results, request.TopK, request.TrackRecall)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"results":        api.enrichResultsWithText(results),
+		"search_time_ns": searchTime.Nanoseconds(),
+		"index_type":     "hnsw",
+		"index_size":     api.hnswIndex.Size(),
 		"recall":         recall,
 	})
 }
@@ -357,6 +438,30 @@ func (api *API) configureIVFPQ(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{"success": true, "retrained": needsRetraining})
 }
 
+func (api *API) configureHNSW(c *gin.Context) {
+	var request HNSWConfigRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+	}
+
+	needsRetraining := request.M != api.hnswIndex.M() ||
+		request.EfConstruction != api.hnswIndex.EfConstruction() ||
+		request.EfSearch != api.hnswIndex.EfSearch()
+
+	if needsRetraining {
+		newIndex := lynx.NewHNSWIndex(lynx.COSINE, request.M, request.EfConstruction, request.EfSearch)
+		newIndex.SetVectorStore(api.vectorStore)
+
+		api.hnswIndex.Delete()
+		api.hnswIndex = newIndex
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"success":   true,
+		"retrained": needsRetraining,
+	})
+}
+
 func (api *API) getIndexStatus(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{
 		"bf": gin.H{
@@ -376,6 +481,13 @@ func (api *API) getIndexStatus(c *gin.Context) {
 			"nprobe":       api.ivfPqIndex.NProbe(),
 			"m":            api.ivfPqIndex.M(),
 			"codebookSize": api.ivfPqIndex.CodebookSize(),
+		},
+		"hnsw": gin.H{
+			"initialized":    api.hnswIndex.IsInitialized(),
+			"vectorCount":    api.hnswIndex.Size(),
+			"m":              api.hnswIndex.M(),
+			"efConstruction": api.hnswIndex.EfConstruction(),
+			"efSearch":       api.hnswIndex.EfSearch(),
 		},
 	})
 }
@@ -424,26 +536,111 @@ func (api *API) runBenchmark(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{"summary": metrics.CalculateSummary(results)})
 }
 
-func (api *API) estimateIVFParamSweepTimeHandler(c *gin.Context) {
-	var request IVFParamSweepRequest
+func (api *API) runComprehensiveBenchmark(c *gin.Context) {
+	var request BenchmarkRequest
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
+	if len(request.Queries) == 0 {
+		c.JSON(400, gin.H{"error": "queries cannot be empty"})
+		return
+	}
+
 	api.lock.RLock()
-	vectorCount := api.vectorStore.Size()
-	api.lock.RUnlock()
+	defer api.lock.RUnlock()
 
-	estimate := estimateIVFParamSweepTime(
-		int64(len(request.Queries)),
-		int64(len(request.NlistValues)),
-		int64(len(request.NprobeValues)),
-		vectorCount,
-	)
+	var results []metrics.MultiIndexBenchmarkResult
 
-	c.IndentedJSON(200, estimate)
+	for _, query := range request.Queries {
+		embeddedQuery, err := getEmbeddings(query)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get embeddings for query: " + err.Error()})
+			return
+		}
+
+		// Run BruteForce search (ground truth)
+		startBF := time.Now()
+		bfResults, err := api.bfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Brute-force search failed: " + err.Error()})
+			return
+		}
+		bfTime := time.Since(startBF)
+
+		// Run IVF search
+		startIVF := time.Now()
+		ivfResults, err := api.ivfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "IVF search failed: " + err.Error()})
+			return
+		}
+		ivfTime := time.Since(startIVF)
+		ivfRecall := metrics.CalculateRecall(bfResults, ivfResults, int64(request.TopK))
+		ivfSpeedup := float64(bfTime.Nanoseconds()) / float64(ivfTime.Nanoseconds())
+
+		// Run IVF-PQ search
+		startIVFPQ := time.Now()
+		ivfpqResults, err := api.ivfPqIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "IVF-PQ search failed: " + err.Error()})
+			return
+		}
+		ivfpqTime := time.Since(startIVFPQ)
+		ivfpqRecall := metrics.CalculateRecall(bfResults, ivfpqResults, int64(request.TopK))
+		ivfpqSpeedup := float64(bfTime.Nanoseconds()) / float64(ivfpqTime.Nanoseconds())
+
+		// Run HNSW search
+		startHNSW := time.Now()
+		hnswResults, err := api.hnswIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "HNSW search failed: " + err.Error()})
+			return
+		}
+		hnswTime := time.Since(startHNSW)
+		hnswRecall := metrics.CalculateRecall(bfResults, hnswResults, int64(request.TopK))
+		hnswSpeedup := float64(bfTime.Nanoseconds()) / float64(hnswTime.Nanoseconds())
+
+		results = append(results, metrics.MultiIndexBenchmarkResult{
+			Query:        query,
+			BFTimeNs:     bfTime.Nanoseconds(),
+			IVFTimeNs:    ivfTime.Nanoseconds(),
+			IVFPQTimeNs:  ivfpqTime.Nanoseconds(),
+			HNSWTimeNs:   hnswTime.Nanoseconds(),
+			IVFRecall:    ivfRecall,
+			IVFPQRecall:  ivfpqRecall,
+			HNSWRecall:   hnswRecall,
+			IVFSpeedup:   ivfSpeedup,
+			IVFPQSpeedup: ivfpqSpeedup,
+			HNSWSpeedup:  hnswSpeedup,
+		})
+	}
+
+	summary := metrics.CalculateMultiIndexSummary(results)
+	c.IndentedJSON(200, summary)
 }
+
+//func (api *API) estimateIVFParamSweepTimeHandler(c *gin.Context) {
+//	var request IVFParamSweepRequest
+//	if err := c.BindJSON(&request); err != nil {
+//		c.JSON(400, gin.H{"error": err.Error()})
+//		return
+//	}
+//
+//	api.lock.RLock()
+//	vectorCount := api.vectorStore.Size()
+//	api.lock.RUnlock()
+//
+//	estimate := estimateIVFParamSweepTime(
+//		int64(len(request.Queries)),
+//		int64(len(request.NlistValues)),
+//		int64(len(request.NprobeValues)),
+//		vectorCount,
+//	)
+//
+//	c.IndentedJSON(200, estimate)
+//}
 
 func (api *API) runIVFParamSweep(c *gin.Context) {
 	var request IVFParamSweepRequest
@@ -620,28 +817,28 @@ func (api *API) runIVFParamSweep(c *gin.Context) {
 	})
 }
 
-func (api *API) estimateIVFPQParamSweepTimeHandler(c *gin.Context) {
-	var request IVFPQParamSweepRequest
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	api.lock.RLock()
-	vectorCount := api.vectorStore.Size()
-	api.lock.RUnlock()
-
-	estimate := estimateIVFPQParamSweepTime(
-		int64(len(request.Queries)),
-		int64(len(request.NlistValues)),
-		int64(len(request.NprobeValues)),
-		int64(len(request.MValues)),
-		int64(len(request.CodebookSizeValues)),
-		vectorCount,
-	)
-
-	c.IndentedJSON(200, estimate)
-}
+//func (api *API) estimateIVFPQParamSweepTimeHandler(c *gin.Context) {
+//	var request IVFPQParamSweepRequest
+//	if err := c.BindJSON(&request); err != nil {
+//		c.JSON(400, gin.H{"error": err.Error()})
+//		return
+//	}
+//
+//	api.lock.RLock()
+//	vectorCount := api.vectorStore.Size()
+//	api.lock.RUnlock()
+//
+//	estimate := estimateIVFPQParamSweepTime(
+//		int64(len(request.Queries)),
+//		int64(len(request.NlistValues)),
+//		int64(len(request.NprobeValues)),
+//		int64(len(request.MValues)),
+//		int64(len(request.CodebookSizeValues)),
+//		vectorCount,
+//	)
+//
+//	c.IndentedJSON(200, estimate)
+//}
 
 func (api *API) runIVFPQParamSweep(c *gin.Context) {
 	var request IVFPQParamSweepRequest

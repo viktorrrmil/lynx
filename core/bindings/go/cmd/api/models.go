@@ -11,6 +11,7 @@ type API struct {
 	bfIndex    *lynx.BruteForceIndex
 	ivfIndex   *lynx.IVFIndex
 	ivfPqIndex *lynx.IVFPQIndex
+	hnswIndex  *lynx.HNSWIndex
 
 	// C++ vector store wrapper
 	vectorStore *lynx.InMemoryVectorStore
@@ -23,6 +24,10 @@ type API struct {
 	pgStore *storage.PostgresVectorStore
 
 	lock sync.RWMutex
+
+	// Track if indexes are ready
+	indexesReady     bool
+	indexesReadyLock sync.RWMutex
 }
 
 type (
@@ -69,6 +74,12 @@ type (
 		Nprobe       int64 `json:"nprobe"`
 		M            int64 `json:"m"`
 		CodebookSize int64 `json:"codebook_size"`
+	}
+
+	HNSWConfigRequest struct {
+		M              int64 `json:"m"`
+		EfConstruction int64 `json:"ef_construction"`
+		EfSearch       int64 `json:"ef_search"`
 	}
 
 	BenchmarkRequest struct {

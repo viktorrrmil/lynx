@@ -54,6 +54,10 @@ add_executable(lynx
         src/ivf_pq_index.cpp
         bindings/go/wrapper/ivf_pq_index_wrapper.h
         bindings/go/wrapper/ivf_pq_index_wrapper.cpp
+        include/lynx/hnsw_index.h
+        src/hnsw_index.cpp
+        bindings/go/wrapper/hnsw_index_wrapper.cpp
+        bindings/go/wrapper/hnsw_index_wrapper.h
 )
 
 target_link_libraries(lynx

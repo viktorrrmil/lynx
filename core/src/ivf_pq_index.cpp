@@ -85,17 +85,54 @@ IVFPQIndex::search(const std::span<const float> &query, long k) const {
     std::sort(centroid_distances.begin(), centroid_distances.end(),
               [](const auto &a, const auto &b) { return a.second < b.second; });
 
+    // Precompute distance tables for Asymmetric Distance Computation (ADC)
+    // For each subspace m, compute distance from query subvector to all k centroids
+    // This is much faster than reconstructing vectors and computing full distances
+    std::vector<std::vector<float>> distance_tables(m_);
+    for (std::int64_t m = 0; m < m_; m++) {
+        distance_tables[m].resize(codebook_size_);
+
+        // Extract query subvector for this subspace
+        std::vector<float> query_subvec(query.begin() + m * compressed_dim_,
+                                         query.begin() + (m + 1) * compressed_dim_);
+
+        // Compute distance to each centroid in this subspace's codebook
+        for (std::int64_t c = 0; c < codebook_size_ && c < static_cast<std::int64_t>(pq_codebooks_[m].size()); c++) {
+            if (distance_metric_ == DistanceMetric::L2) {
+                // For L2, we store squared distance to avoid sqrt in inner loop
+                float dist_sq = 0.0f;
+                for (std::int64_t d = 0; d < compressed_dim_; d++) {
+                    float diff = query_subvec[d] - pq_codebooks_[m][c][d];
+                    dist_sq += diff * diff;
+                }
+                distance_tables[m][c] = dist_sq;
+            } else {
+                // For cosine, compute component-wise
+                distance_tables[m][c] = compute_distance(distance_metric_, query_subvec, pq_codebooks_[m][c]);
+            }
+        }
+    }
+
     std::vector<std::pair<long, float> > results;
 
     for (std::int64_t i = 0; i < std::min(nprobe_, static_cast<std::int64_t>(centroid_distances.size())); i++) {
         std::int64_t centroid_index = centroid_distances[i].first;
 
         for (long id: inverted_lists_[centroid_index]) {
-            std::vector<float> reconstructed = reconstruct_vector(pq_codes_[id]);
+            const auto& code = pq_codes_[id];
 
-            float distance = compute_distance(distance_metric_, query, reconstructed);
+            // Use precomputed distance tables for fast distance approximation
+            float approx_dist = 0.0f;
+            for (std::int64_t m = 0; m < m_; m++) {
+                approx_dist += distance_tables[m][code[m]];
+            }
 
-            results.emplace_back(id, distance);
+            // For L2, take sqrt of the sum of squared distances
+            if (distance_metric_ == DistanceMetric::L2) {
+                approx_dist = std::sqrt(approx_dist);
+            }
+
+            results.emplace_back(id, approx_dist);
         }
     }
 

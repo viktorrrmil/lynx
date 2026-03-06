@@ -32,6 +32,10 @@ type IVFPQIndex struct {
 	ptr unsafe.Pointer
 }
 
+type HNSWIndex struct {
+	ptr unsafe.Pointer
+}
+
 type InMemoryVectorStore struct {
 	ptr unsafe.Pointer
 }
