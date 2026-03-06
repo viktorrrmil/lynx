@@ -70,7 +70,7 @@ docker compose exec -T postgres psql -U lynx lynx < backup.sql
 ```
 
 
-> **Note:** Currently only .txt files are supported for the file upload
+> **Note:** Currently only .txt files are supported for the file upload, and it is ingested row by row.
 
 ## Algorithms
 
