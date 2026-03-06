@@ -19,7 +19,9 @@ HNSWIndex::HNSWIndex(DistanceMetric metric, int M, int ef_construction, int ef_s
       ml_(1.0f / std::log(static_cast<float>(M))),
       entry_point_(NO_ENTRY_POINT), max_layer_(0),
       rng_(std::random_device{}()),
-      uniform_dist_(0.0f, 1.0f) {
+      uniform_dist_(0.0f, 1.0f),
+      initialized_(true),
+      is_built_(false) {
 }
 
 std::priority_queue<std::pair<float, size_t> > HNSWIndex::search_layer(
@@ -77,15 +79,51 @@ std::priority_queue<std::pair<float, size_t> > HNSWIndex::search_layer(
 
 std::vector<size_t> HNSWIndex::select_neighbors(std::priority_queue<std::pair<float, size_t> > candidates,
                                                 int max_neighbors) const {
-    std::vector<size_t> result;
+    std::vector<std::pair<float, size_t> > sorted_candidates;
     while (!candidates.empty()) {
-        result.push_back(candidates.top().second);
+        sorted_candidates.push_back(candidates.top());
         candidates.pop();
     }
+    std::sort(sorted_candidates.begin(), sorted_candidates.end(),
+              [](const auto &a, const auto &b) { return a.first < b.first; });
 
-    std::reverse(result.begin(), result.end());
-    if (result.size() > static_cast<size_t>(max_neighbors)) {
-        result.resize(max_neighbors);
+    // Use heuristic neighbor selection (SELECT-NEIGHBORS-HEURISTIC from HNSW paper)
+    // This improves recall by selecting diverse neighbors, not just the closest ones
+    std::vector<size_t> result;
+    for (const auto &[dist, id]: sorted_candidates) {
+        if (result.size() >= static_cast<size_t>(max_neighbors)) {
+            break;
+        }
+
+        bool is_good = true;
+        const auto &candidate_vec = vector_store_->get_vector(id);
+
+        for (size_t selected_id: result) {
+            float dist_to_selected = compute_distance(distance_metric_, candidate_vec,
+                                                      vector_store_->get_vector(selected_id));
+            if (dist_to_selected < dist) {
+                is_good = false;
+                break;
+            }
+        }
+
+        if (is_good) {
+            result.push_back(id);
+        }
+    }
+
+    // If we don't have enough neighbors from the heuristic, add the remaining closest ones
+    if (result.size() < static_cast<size_t>(max_neighbors)) {
+        std::unordered_set<size_t> selected_set(result.begin(), result.end());
+        for (const auto &[dist, id]: sorted_candidates) {
+            if (result.size() >= static_cast<size_t>(max_neighbors)) {
+                break;
+            }
+            if (selected_set.find(id) == selected_set.end()) {
+                result.push_back(id);
+                selected_set.insert(id);
+            }
+        }
     }
 
     return result;
@@ -93,21 +131,26 @@ std::vector<size_t> HNSWIndex::select_neighbors(std::priority_queue<std::pair<fl
 
 void HNSWIndex::prune_neighbors(size_t node_id, int layer, int max_connections) {
     auto &neighbors = nodes_[node_id].neighbors[layer];
-    const auto &node_vector = vector_store_->get_vector(node_id);
-
-    std::priority_queue<std::pair<float, size_t> > heap;
-    for (size_t neighbor: neighbors) {
-        float dist = compute_distance(distance_metric_, node_vector, vector_store_->get_vector(neighbor));
-        heap.emplace(dist, neighbor);
-        if (heap.size() > static_cast<size_t>(max_connections)) {
-            heap.pop();
-        }
+    if (neighbors.size() <= static_cast<size_t>(max_connections)) {
+        return;
     }
 
+    const auto &node_vector = vector_store_->get_vector(node_id);
+
+    std::vector<std::pair<float, size_t> > neighbor_dists;
+    neighbor_dists.reserve(neighbors.size());
+
+    for (size_t neighbor: neighbors) {
+        float dist = compute_distance(distance_metric_, node_vector, vector_store_->get_vector(neighbor));
+        neighbor_dists.emplace_back(dist, neighbor);
+    }
+
+    std::sort(neighbor_dists.begin(), neighbor_dists.end(),
+              [](const auto &a, const auto &b) { return a.first < b.first; });
+
     neighbors.clear();
-    while (!heap.empty()) {
-        neighbors.push_back(heap.top().second);
-        heap.pop();
+    for (size_t i = 0; i < static_cast<size_t>(max_connections) && i < neighbor_dists.size(); i++) {
+        neighbors.push_back(neighbor_dists[i].second);
     }
 }
 
@@ -186,4 +229,63 @@ std::vector<std::pair<long, float> > HNSWIndex::search(const std::span<const flo
     }
 
     return result;
+}
+
+IndexType HNSWIndex::type() const {
+    return IndexType::HNSW;
+}
+
+bool HNSWIndex::set_vector_store(std::shared_ptr<InMemoryVectorStore> store) {
+    if (!store) {
+        return false;
+    }
+
+    vector_store_ = store;
+
+    // Clear any existing graph structure
+    clear();
+
+    // Build the graph if there are vectors
+    if (vector_store_->size() > 0) {
+        return build();
+    }
+
+
+    return true;
+}
+
+size_t HNSWIndex::size() const {
+    if (!vector_store_) return 0;
+    return vector_store_->size();
+}
+
+int HNSWIndex::dimension() const {
+    if (!vector_store_) return 0;
+    return vector_store_->dimension();
+}
+
+bool HNSWIndex::build() {
+    if (!vector_store_ || vector_store_->size() == 0) {
+        return false;
+    }
+
+    // Clear any existing graph
+    clear();
+
+    // Resize nodes to accommodate all vectors
+    nodes_.resize(vector_store_->size());
+
+    // Insert all vectors into the graph
+    for (size_t i = 0; i < vector_store_->size(); i++) {
+        insert(i, vector_store_->get_vector(i));
+    }
+
+    is_built_ = true;
+    return true;
+}
+
+void HNSWIndex::clear() {
+    nodes_.clear();
+    entry_point_ = NO_ENTRY_POINT;
+    max_layer_ = 0;
 }

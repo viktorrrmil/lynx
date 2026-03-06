@@ -12,23 +12,23 @@ PORTS=(5433 5000 8080 5173)
 echo -e "${YELLOW}Checking for processes on ports: ${PORTS[@]}${NC}"
 
 for port in "${PORTS[@]}"; do
-    # Find processes using the port
-    pids=$(lsof -ti:$port 2>/dev/null)
+    # Find processes using the port (including root processes)
+    pids=$(sudo lsof -ti:$port 2>/dev/null)
 
     if [ -n "$pids" ]; then
         echo -e "${RED}Found processes on port $port: $pids${NC}"
 
         # Show what processes are running
         echo "Process details:"
-        lsof -i:$port 2>/dev/null
+        sudo lsof -i:$port 2>/dev/null
 
-        # Kill the processes
+        # Kill the processes (using sudo to handle docker-proxy and other root processes)
         echo -e "${YELLOW}Killing processes on port $port...${NC}"
-        kill -9 $pids 2>/dev/null
+        sudo kill -9 $pids 2>/dev/null
 
         # Verify they're gone
         sleep 1
-        remaining_pids=$(lsof -ti:$port 2>/dev/null)
+        remaining_pids=$(sudo lsof -ti:$port 2>/dev/null)
         if [ -z "$remaining_pids" ]; then
             echo -e "${GREEN}Successfully killed processes on port $port${NC}"
         else

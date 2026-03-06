@@ -28,6 +28,18 @@ interface IndexStatus {
     };
 }
 
+interface IsReadyResponse {
+    ready: boolean;
+    message: string;
+    status?: {
+        bf_ready: boolean;
+        ivf_ready: boolean;
+        ivfpq_ready: boolean;
+        hnsw_ready: boolean;
+        vector_count: number;
+    };
+}
+
 interface IndexStatusPanelProps {
     isExpanded: boolean;
 }
@@ -49,6 +61,97 @@ export const IndexStatusToggle = ({ isExpanded, onToggle }: IndexStatusTogglePro
         >
             Index Status
         </button>
+    );
+};
+
+interface IndexBuildingStatusProps {
+    onReady: () => void;
+}
+
+export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
+    const [readyStatus, setReadyStatus] = useState<IsReadyResponse | null>(null);
+    const [isPolling, setIsPolling] = useState(true);
+
+    useEffect(() => {
+        const checkReady = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/is_ready');
+                const data: IsReadyResponse = await response.json();
+                setReadyStatus(data);
+
+                if (data.ready) {
+                    setIsPolling(false);
+                    onReady();
+                }
+            } catch (error) {
+                console.error('Failed to check ready status:', error);
+            }
+        };
+
+        checkReady();
+
+        if (isPolling) {
+            const interval = setInterval(checkReady, 3000);
+            return () => clearInterval(interval);
+        }
+    }, [isPolling, onReady]);
+
+    if (!readyStatus || readyStatus.ready) {
+        return null;
+    }
+
+    const indexes = [
+        { name: 'BruteForce', key: 'bf_ready', ready: readyStatus.status?.bf_ready },
+        { name: 'IVF', key: 'ivf_ready', ready: readyStatus.status?.ivf_ready },
+        { name: 'IVF-PQ', key: 'ivfpq_ready', ready: readyStatus.status?.ivfpq_ready },
+        { name: 'HNSW', key: 'hnsw_ready', ready: readyStatus.status?.hnsw_ready },
+    ];
+
+    return (
+        <div className="border border-amber-200 rounded-lg p-4 bg-amber-50 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="relative">
+                    <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+                <div>
+                    <h3 className="text-sm font-medium text-amber-900">Building Indexes</h3>
+                    <p className="text-xs text-amber-700">{readyStatus.message}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {indexes.map((index) => (
+                    <div
+                        key={index.key}
+                        className={`border rounded-lg p-3 transition-all ${
+                            index.ready
+                                ? 'border-green-200 bg-green-50'
+                                : 'border-amber-200 bg-white'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                            {index.ready ? (
+                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                            ) : (
+                                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                            )}
+                            <span className="text-xs font-medium text-gray-900">{index.name}</span>
+                        </div>
+                        <p className="text-xs text-gray-600">
+                            {index.ready ? 'Ready' : index.name === 'HNSW' ? 'Building (this may take a while)' : 'Building'}
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            {readyStatus.status?.vector_count !== undefined && (
+                <div className="mt-3 pt-3 border-t border-amber-200">
+                    <p className="text-xs text-amber-700">
+                        Vectors loaded: <span className="font-mono font-medium">{readyStatus.status.vector_count}</span>
+                    </p>
+                </div>
+            )}
+        </div>
     );
 };
 

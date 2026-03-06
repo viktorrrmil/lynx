@@ -35,3 +35,11 @@
 - Docker build currently fails and recall issues are still under investigation.
 
 ![speedup_rankings.png](speedup_rankings.png)
+
+### March 6, 2025
+
+- Finished HNSW implementation and added it to the benchmarking tool. HNSW shows significant speedup compared to IVF and BruteForce, especially for larger datasets.
+- Added comprehensive benchmark for all four current indexing methods which helps to evaluate the performance and accuracy of each indexing method.
+- Fix the cleanup ports .sh script
+
+![comprehensive_benchmark.png](comprehensive_benchmark.png)

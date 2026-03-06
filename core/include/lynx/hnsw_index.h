@@ -34,6 +34,9 @@ private:
 
     std::mt19937 rng_;
     std::uniform_real_distribution<float> uniform_dist_;
+
+    bool initialized_ = false;
+    bool is_built_ = false;
 public:
     HNSWIndex() : distance_metric_(DistanceMetric::L2) {
     }
@@ -69,6 +72,14 @@ public:
 
     int ef_search() const {
         return ef_search_;
+    }
+
+    bool is_initialized() const {
+        return initialized_;
+    }
+
+    bool is_built() const {
+        return is_built_;
     }
 
     std::priority_queue<std::pair<float, size_t> > search_layer(

@@ -46,6 +46,8 @@ extern "C" {
 
     int HNSWIndex_is_initialized(void *index);
 
+    int HNSWIndex_is_built(void *index);
+
     int HNSWIndex_set_vector_store(void *index, void *store);
 
     int HNSWIndex_update_vectors(void *index);

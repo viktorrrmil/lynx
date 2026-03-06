@@ -24,6 +24,10 @@ type API struct {
 	pgStore *storage.PostgresVectorStore
 
 	lock sync.RWMutex
+
+	// Track if indexes are ready
+	indexesReady     bool
+	indexesReadyLock sync.RWMutex
 }
 
 type (

@@ -151,3 +151,11 @@ func (h *HNSWIndex) EfSearch() int64 {
 func (h *HNSWIndex) IsInitialized() bool {
 	return h.ptr != nil
 }
+
+func (h *HNSWIndex) IsBuilt() bool {
+	if h.ptr == nil {
+		return false
+	}
+
+	return C.HNSWIndex_is_built(h.ptr) == 1
+}

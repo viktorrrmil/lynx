@@ -4,7 +4,7 @@ import ResultsColumn from "./results/ResultColumn.tsx";
 import UploadSection from "./UploadSection.tsx";
 import InfoScreen from "./InfoScreen.tsx";
 import VectorCacheSection from "./VectorCacheSection.tsx";
-import { IndexStatusPanel, IndexStatusToggle } from "./IndexStatusPanel.tsx";
+import { IndexStatusPanel, IndexStatusToggle, IndexBuildingStatus } from "./IndexStatusPanel.tsx";
 import BenchmarkSection from "./BenchmarkSection.tsx";
 
 type AppMode = 'search' | 'benchmark';
@@ -25,6 +25,7 @@ const MainScreen = () => {
     const [ivfPqTrackRecall, setIvfPqTrackRecall] = useState(false);
     const [hnswTrackRecall, setHnswTrackRecall] = useState(false);
     const [indexStatusExpanded, setIndexStatusExpanded] = useState(false);
+    const [indexesReady, setIndexesReady] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('search');
     const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
 
@@ -210,6 +211,11 @@ const MainScreen = () => {
 
                 {/* Index Status Panel */}
                 <IndexStatusPanel isExpanded={indexStatusExpanded} />
+
+                {/* Index Building Status - shows when indexes are being built */}
+                {!indexesReady && (
+                    <IndexBuildingStatus onReady={() => setIndexesReady(true)} />
+                )}
 
                 {/* Search Mode Content */}
                 {appMode === 'search' && (

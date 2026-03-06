@@ -11,6 +11,47 @@ import (
 
 // Helper functions to reduce code duplication
 
+func (api *API) isReady(c *gin.Context) {
+	if api == nil || api.vectorStore == nil || api.pgStore == nil {
+		c.JSON(503, gin.H{
+			"ready":   false,
+			"message": "API or dependencies not initialized",
+		})
+		return
+	}
+
+	api.indexesReadyLock.RLock()
+	ready := api.indexesReady
+	api.indexesReadyLock.RUnlock()
+
+	if !ready {
+		c.JSON(503, gin.H{
+			"ready":   false,
+			"message": "Indexes are still building in the background",
+			"status": gin.H{
+				"bf_ready":     api.bfIndex.IsInitialized(),
+				"ivf_ready":    api.ivfIndex.IsInitialized(),
+				"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
+				"hnsw_ready":   api.hnswIndex.IsBuilt(),
+				"vector_count": api.vectorStore.Size(),
+			},
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"ready":   true,
+		"message": "All indexes are ready",
+		"status": gin.H{
+			"bf_ready":     api.bfIndex.IsInitialized(),
+			"ivf_ready":    api.ivfIndex.IsInitialized(),
+			"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
+			"hnsw_ready":   api.hnswIndex.IsBuilt(),
+			"vector_count": api.vectorStore.Size(),
+		},
+	})
+}
+
 func (api *API) enrichResultsWithText(results []lynx.SearchResult) []map[string]interface{} {
 	enrichedResults := make([]map[string]interface{}, len(results))
 	for i, result := range results {
@@ -493,6 +534,91 @@ func (api *API) runBenchmark(c *gin.Context) {
 	}
 
 	c.IndentedJSON(200, gin.H{"summary": metrics.CalculateSummary(results)})
+}
+
+func (api *API) runComprehensiveBenchmark(c *gin.Context) {
+	var request BenchmarkRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(request.Queries) == 0 {
+		c.JSON(400, gin.H{"error": "queries cannot be empty"})
+		return
+	}
+
+	api.lock.RLock()
+	defer api.lock.RUnlock()
+
+	var results []metrics.MultiIndexBenchmarkResult
+
+	for _, query := range request.Queries {
+		embeddedQuery, err := getEmbeddings(query)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get embeddings for query: " + err.Error()})
+			return
+		}
+
+		// Run BruteForce search (ground truth)
+		startBF := time.Now()
+		bfResults, err := api.bfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Brute-force search failed: " + err.Error()})
+			return
+		}
+		bfTime := time.Since(startBF)
+
+		// Run IVF search
+		startIVF := time.Now()
+		ivfResults, err := api.ivfIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "IVF search failed: " + err.Error()})
+			return
+		}
+		ivfTime := time.Since(startIVF)
+		ivfRecall := metrics.CalculateRecall(bfResults, ivfResults, int64(request.TopK))
+		ivfSpeedup := float64(bfTime.Nanoseconds()) / float64(ivfTime.Nanoseconds())
+
+		// Run IVF-PQ search
+		startIVFPQ := time.Now()
+		ivfpqResults, err := api.ivfPqIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "IVF-PQ search failed: " + err.Error()})
+			return
+		}
+		ivfpqTime := time.Since(startIVFPQ)
+		ivfpqRecall := metrics.CalculateRecall(bfResults, ivfpqResults, int64(request.TopK))
+		ivfpqSpeedup := float64(bfTime.Nanoseconds()) / float64(ivfpqTime.Nanoseconds())
+
+		// Run HNSW search
+		startHNSW := time.Now()
+		hnswResults, err := api.hnswIndex.Search(embeddedQuery, int64(request.TopK))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "HNSW search failed: " + err.Error()})
+			return
+		}
+		hnswTime := time.Since(startHNSW)
+		hnswRecall := metrics.CalculateRecall(bfResults, hnswResults, int64(request.TopK))
+		hnswSpeedup := float64(bfTime.Nanoseconds()) / float64(hnswTime.Nanoseconds())
+
+		results = append(results, metrics.MultiIndexBenchmarkResult{
+			Query:        query,
+			BFTimeNs:     bfTime.Nanoseconds(),
+			IVFTimeNs:    ivfTime.Nanoseconds(),
+			IVFPQTimeNs:  ivfpqTime.Nanoseconds(),
+			HNSWTimeNs:   hnswTime.Nanoseconds(),
+			IVFRecall:    ivfRecall,
+			IVFPQRecall:  ivfpqRecall,
+			HNSWRecall:   hnswRecall,
+			IVFSpeedup:   ivfSpeedup,
+			IVFPQSpeedup: ivfpqSpeedup,
+			HNSWSpeedup:  hnswSpeedup,
+		})
+	}
+
+	summary := metrics.CalculateMultiIndexSummary(results)
+	c.IndentedJSON(200, summary)
 }
 
 //func (api *API) estimateIVFParamSweepTimeHandler(c *gin.Context) {

@@ -17,6 +17,7 @@ func setupRouter(api *API) *gin.Engine {
 	}))
 
 	router.GET("/info", api.getInfo)
+	router.GET("/is_ready", api.isReady)
 
 	// Vector Store endpoints
 	router.POST("/vector_store/add", api.addToVectorStore)
@@ -47,6 +48,7 @@ func setupRouter(api *API) *gin.Engine {
 
 	// Benchmark
 	router.POST("/benchmark", api.runBenchmark)
+	router.POST("/benchmark/comprehensive", api.runComprehensiveBenchmark)
 	router.POST("/benchmark/ivf_param_sweep", api.runIVFParamSweep)
 	router.POST("/benchmark/ivf_pq_param_sweep", api.runIVFPQParamSweep)
 	//router.POST("/benchmark/ivf_param_sweep/estimate", api.estimateIVFParamSweepTimeHandler)

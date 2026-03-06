@@ -86,7 +86,12 @@ extern "C" {
 
     int HNSWIndex_is_initialized(void *index) {
         auto *hnsw_index = static_cast<HNSWIndex *>(index);
-        return hnsw_index->size() > 0 ? 1 : 0;
+        return hnsw_index->is_initialized() ? 1 : 0;
+    }
+
+    int HNSWIndex_is_built(void *index) {
+        auto *hnsw_index = static_cast<HNSWIndex *>(index);
+        return hnsw_index->is_built() ? 1 : 0;
     }
 
     int HNSWIndex_set_vector_store(void *index, void *store) {
