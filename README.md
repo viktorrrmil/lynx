@@ -22,15 +22,14 @@ Currently implemented:
 - Brute force search (baseline)
 - IVF indexing algorithm
 - IVF-PQ indexing algorithm (IVF with Product Quantization)
+- HNSW indexing algorithm (Hierarchical Navigable Small World Graphs)
 - Benchmarking tools for performance analysis and parameter optimization
 - Core vector storage and retrieval
 - Shared index architecture
 
 Not yet implemented:
-- Application layer
-- Additional indexing algorithms (e.g., HNSW)
-- Performance optimizations
-- More optimized embedding pipelines and embedding storage
+- Application layer (APIs, UI, etc.)
+- More optimized embedding pipelines
 
 ## Prerequisites
 
@@ -84,16 +83,31 @@ Clusters vectors into partitions (Voronoi cells) for efficient approximate neare
 ### IVF-PQ (Inverted File Index with Product Quantization)
 Combines IVF clustering with product quantization for memory-efficient vector search. Vectors are compressed using learned codebooks while maintaining search accuracy, making it suitable for large-scale deployments with memory constraints.
 
+### HNSW (Hierarchical Navigable Small World Graphs)
+A graph-based indexing algorithm that builds a multi-layer navigable small world graph for efficient approximate nearest neighbor search. HNSW provides high recall and low latency, making it suitable for large datasets and high-dimensional vector spaces.
+
 ## Benchmarking
 
-The engine includes comprehensive benchmarking tools to evaluate and optimize algorithm performance:
+The engine includes powerful benchmarking tools to evaluate and optimize algorithm performance across all indexing methods.
 
-### Performance Benchmarking
-- **Recall Analysis**: Compare approximate search results against ground truth (brute force)
-- **Latency Measurement**: Measure search time performance across different algorithms
-- **Speedup Calculation**: Quantify performance improvements over baseline methods
+### Comprehensive Cross-Index Benchmarking
+The comprehensive benchmark compares **all four indexing algorithms** (BruteForce, IVF, IVF-PQ, and HNSW) using the same queries, providing detailed performance metrics for each:
 
-### IVF Parameter Optimization
+- **Multi-Index Comparison**: Run identical queries across all indexes simultaneously
+- **Statistical Analysis**: Mean, median, min, max, and standard deviation for recall and latency
+- **Per-Index Summaries**: Detailed breakdowns of recall, latency, and speedup for each algorithm
+- **Decision Support**: Make data-driven choices for index selection based on your specific requirements
+  - High recall needed? → Compare HNSW vs IVF metrics
+  - Maximum speed required? → Compare IVF-PQ vs IVF speedup
+  - Balanced performance? → Analyze recall-latency tradeoffs across all indexes
+
+> **Note**: The following benchmark is from a dataset of 125k 384-dimensional vectors.
+
+![Comprehensive Benchmark](comprehensive_benchmark.png)
+
+### Algorithm-Specific Parameter Optimization
+
+#### IVF Parameter Sweep
 - **Parameter Sweep**: Automated testing of different `nlist` (number of clusters) and `nprobe` (clusters to search) combinations
 - **Multi-dimensional Analysis**: Evaluate trade-offs between recall, latency, and memory usage
 - **Smart Recommendations**: Algorithm suggests optimal parameter combinations based on:
@@ -102,8 +116,12 @@ The engine includes comprehensive benchmarking tools to evaluate and optimize al
   - **Best Latency**: Fastest search times
   - **Balanced**: Optimal trade-off between recall and speed using elbow curve analysis
 
-![Benchmark Screenshot](benchmark_screenshot.png)
 ![IVF Parameter Sweep](ivf_param_sweep_screenshot.png)
+
+#### IVF-PQ Parameter Sweep
+- **Extended Parameter Space**: Test combinations of `nlist`, `nprobe`, `m` (subquantizers), and `codebook_size`
+- **Compression Analysis**: Understand the impact of product quantization parameters on recall and memory
+- **Production Optimization**: Find the sweet spot between memory efficiency and search quality
 
 ## Architecture
 
