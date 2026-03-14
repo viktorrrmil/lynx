@@ -51,16 +51,17 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 	hnswIndex := lynx.NewHNSWIndex(metric, 32, 400, 300)
 
 	api := &API{
-		bfIndex:      bfIndex,
-		ivfIndex:     ivfIndex,
-		ivfPqIndex:   ivfPqIndex,
-		hnswIndex:    hnswIndex,
-		vectorStore:  vectorStore,
-		vectorCache:  cache,
-		pgStore:      pgStore,
-		pgGeoStore:   pgGeoStore,
-		indexesReady: false,
-		jobHub:       newIndexingJobHub(),
+		bfIndex:            bfIndex,
+		ivfIndex:           ivfIndex,
+		ivfPqIndex:         ivfPqIndex,
+		hnswIndex:          hnswIndex,
+		vectorStore:        vectorStore,
+		activeVectorSource: vectorSourceDefault,
+		vectorCache:        cache,
+		pgStore:            pgStore,
+		pgGeoStore:         pgGeoStore,
+		indexesReady:       false,
+		jobHub:             newIndexingJobHub(),
 	}
 
 	// Build indexes asynchronously in background

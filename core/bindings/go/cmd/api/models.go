@@ -35,7 +35,8 @@ type API struct {
 	hnswIndex  *lynx.HNSWIndex
 
 	// C++ vector store wrapper
-	vectorStore *lynx.InMemoryVectorStore
+	vectorStore        *lynx.InMemoryVectorStore
+	activeVectorSource string
 
 	// Binary file for persisting embeddings
 	// NOTE: It says "vector cache" but it's really just a file on disk that we can load/save to persist the in-memory vector store across restarts
@@ -55,6 +56,11 @@ type API struct {
 
 	jobHub *indexingJobHub
 }
+
+const (
+	vectorSourceDefault = "vector"
+	vectorSourceGeo     = "geo"
+)
 
 type (
 	EmbeddingRequest struct {
@@ -88,6 +94,21 @@ type (
 
 	AddTextRequest struct {
 		Text string `json:"text"`
+	}
+
+	VectorStoreSwapRequest struct {
+		Target string `json:"target"`
+	}
+
+	VectorStoreSourceResponse struct {
+		Source      string `json:"source"`
+		VectorCount int64  `json:"vector_count"`
+	}
+
+	VectorStoreSwapResponse struct {
+		Source         string `json:"source"`
+		VectorCount    int64  `json:"vector_count"`
+		PreviousSource string `json:"previous_source,omitempty"`
 	}
 
 	IVFConfigRequest struct {

@@ -22,6 +22,8 @@ func setupRouter(api *API) *gin.Engine {
 	// Vector Store endpoints
 	router.POST("/vector_store/add", api.addToVectorStore)
 	router.POST("/vector_store/add_batch", api.addBatchToVectorStore)
+	router.GET("/vector_store/source", api.getVectorStoreSource)
+	router.POST("/vector_store/hot_swap", api.hotSwapVectorStore)
 
 	// Bruteforce endpoints
 	router.POST("/bf_search", api.bfSearch)

@@ -84,6 +84,20 @@ func (api *API) calculateRecallIfRequested(embeddedQuery []float32, results []ly
 	return metrics.CalculateRecall(bfResults, results, topK), nil
 }
 
+func normalizeVectorSource(source string) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(source))
+	switch normalized {
+	case vectorSourceDefault, "default":
+		return vectorSourceDefault, nil
+	case vectorSourceGeo:
+		return vectorSourceGeo, nil
+	case "":
+		return "", fmt.Errorf("target is required")
+	default:
+		return "", fmt.Errorf("unsupported target: %s", normalized)
+	}
+}
+
 func (api *API) bfSearch(c *gin.Context) {
 	var request SearchRequest
 	if err := c.BindJSON(&request); err != nil {
@@ -244,6 +258,21 @@ func (api *API) hnswSearch(c *gin.Context) {
 	})
 }
 
+func (api *API) getVectorStoreSource(c *gin.Context) {
+	api.lock.RLock()
+	source := api.activeVectorSource
+	vectorCount := int64(0)
+	if api.vectorStore != nil {
+		vectorCount = api.vectorStore.Size()
+	}
+	api.lock.RUnlock()
+
+	c.IndentedJSON(200, VectorStoreSourceResponse{
+		Source:      source,
+		VectorCount: vectorCount,
+	})
+}
+
 func (api *API) addToVectorStore(c *gin.Context) {
 	var request AddTextRequest
 	if err := c.BindJSON(&request); err != nil {
@@ -275,6 +304,117 @@ func (api *API) addToVectorStore(c *gin.Context) {
 		"message": "Vector added successfully",
 		"count":   1,
 		"id":      id,
+	})
+}
+
+func (api *API) hotSwapVectorStore(c *gin.Context) {
+	var request VectorStoreSwapRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	target, err := normalizeVectorSource(request.Target)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	var vectors [][]float32
+	switch target {
+	case vectorSourceDefault:
+		if api.pgStore == nil {
+			c.JSON(500, gin.H{"error": "vector store database is not initialized"})
+			return
+		}
+		vectors, err = api.pgStore.GetAllVectors()
+	case vectorSourceGeo:
+		if api.pgGeoStore == nil {
+			c.JSON(500, gin.H{"error": "geo store database is not initialized"})
+			return
+		}
+		vectors, err = api.pgGeoStore.GetAllEmbeddings()
+	}
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to fetch vectors: " + err.Error()})
+		return
+	}
+
+	newStore := lynx.NewInMemoryVectorStore()
+	if len(vectors) > 0 {
+		if err := newStore.AddBatch(vectors); err != nil {
+			newStore.Delete()
+			c.JSON(500, gin.H{"error": "failed to load vectors into new store: " + err.Error()})
+			return
+		}
+	}
+
+	api.lock.Lock()
+	defer api.lock.Unlock()
+
+	api.indexesReadyLock.Lock()
+	api.indexesReady = false
+	api.indexesReadyLock.Unlock()
+
+	oldStore := api.vectorStore
+	previousSource := api.activeVectorSource
+	api.vectorStore = newStore
+
+	restore := func(reason string, cause error) {
+		api.vectorStore = oldStore
+		if oldStore != nil {
+			api.bfIndex.SetVectorStore(oldStore)
+			api.ivfIndex.SetVectorStore(oldStore)
+			_ = api.ivfIndex.UpdateVectors()
+			api.ivfPqIndex.SetVectorStore(oldStore)
+			_ = api.ivfPqIndex.UpdateVectors()
+			_ = api.hnswIndex.SetVectorStore(oldStore)
+		}
+		api.indexesReadyLock.Lock()
+		api.indexesReady = true
+		api.indexesReadyLock.Unlock()
+		newStore.Delete()
+		c.JSON(500, gin.H{"error": reason + ": " + cause.Error()})
+	}
+
+	if ok := api.bfIndex.SetVectorStore(newStore); !ok {
+		restore("failed to set BruteForce index vector store", fmt.Errorf("operation returned false"))
+		return
+	}
+	if ok := api.ivfIndex.SetVectorStore(newStore); !ok {
+		restore("failed to set IVF index vector store", fmt.Errorf("operation returned false"))
+		return
+	}
+	if err := api.ivfIndex.UpdateVectors(); err != nil {
+		restore("failed to update IVF index vectors", err)
+		return
+	}
+	if ok := api.ivfPqIndex.SetVectorStore(newStore); !ok {
+		restore("failed to set IVF-PQ index vector store", fmt.Errorf("operation returned false"))
+		return
+	}
+	if err := api.ivfPqIndex.UpdateVectors(); err != nil {
+		restore("failed to update IVF-PQ index vectors", err)
+		return
+	}
+	if err := api.hnswIndex.SetVectorStore(newStore); err != nil {
+		restore("failed to rebuild HNSW index", err)
+		return
+	}
+
+	if oldStore != nil {
+		oldStore.Delete()
+	}
+
+	api.activeVectorSource = target
+	api.indexesReadyLock.Lock()
+	api.indexesReady = true
+	api.indexesReadyLock.Unlock()
+
+	c.IndentedJSON(200, VectorStoreSwapResponse{
+		Source:         target,
+		VectorCount:    newStore.Size(),
+		PreviousSource: previousSource,
 	})
 }
 

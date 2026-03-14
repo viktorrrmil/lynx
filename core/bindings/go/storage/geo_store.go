@@ -116,6 +116,33 @@ func (store *PostgresGeoStore) AddPlaces(places []GeoPlace) error {
 	return nil
 }
 
+func (store *PostgresGeoStore) GetAllEmbeddings() ([][]float32, error) {
+	if store.db == nil {
+		return nil, fmt.Errorf("geo store database is nil")
+	}
+
+	rows, err := store.db.Query(`SELECT embedding FROM places ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vectors [][]float32
+	for rows.Next() {
+		var vec pgvector.Vector
+		if err := rows.Scan(&vec); err != nil {
+			return nil, err
+		}
+		vectors = append(vectors, vec.Slice())
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return vectors, nil
+}
+
 func ensureGeoSchema(db *sql.DB) error {
 	if db == nil {
 		return fmt.Errorf("geo schema initialization failed: database is nil")
