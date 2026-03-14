@@ -35,6 +35,32 @@ interface DatabaseStatusResponse {
     databases: DatabaseStatus[];
 }
 
+type VectorSource = 'vector' | 'geo';
+
+interface VectorStoreSourceResponse {
+    source: string;
+    vector_count: number;
+}
+
+interface VectorStoreSwapResponse {
+    source: string;
+    vector_count: number;
+    previous_source?: string;
+}
+
+const HotSwapSpinner = ({ active }: { active: boolean }) => (
+    <span className={`hot-swap-spinner ${active ? 'is-active' : ''}`} aria-hidden="true">
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+        <span className="hot-swap-dot" />
+    </span>
+);
+
 const IndexActivityPanel = () => {
     const [status, setStatus] = useState<IsReadyResponse | null>(null);
     const [loading, setLoading] = useState(false);
@@ -140,6 +166,10 @@ const DatabaseStatusPanel = () => {
     const [data, setData] = useState<DatabaseStatusResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [vectorSource, setVectorSource] = useState<VectorSource | null>(null);
+    const [vectorCount, setVectorCount] = useState<number | null>(null);
+    const [swapLoading, setSwapLoading] = useState(false);
+    const [swapError, setSwapError] = useState<string | null>(null);
 
     const fetchStatus = async () => {
         setLoading(true);
@@ -160,9 +190,59 @@ const DatabaseStatusPanel = () => {
         }
     };
 
+    const fetchVectorSource = async () => {
+        try {
+            const response = await fetch('http://localhost:8080/vector_store/source');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch vector source (${response.status})`);
+            }
+            const payload: VectorStoreSourceResponse = await response.json();
+            const normalized: VectorSource = payload.source === 'geo' ? 'geo' : 'vector';
+            setVectorSource(normalized);
+            setVectorCount(payload.vector_count);
+        } catch (err) {
+            console.error('Failed to fetch vector source:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setSwapError(message);
+        }
+    };
+
+    const handleSwap = async () => {
+        const target: VectorSource = vectorSource === 'geo' ? 'vector' : 'geo';
+        setSwapLoading(true);
+        setSwapError(null);
+        try {
+            const response = await fetch('http://localhost:8080/vector_store/hot_swap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target }),
+            });
+            if (!response.ok) {
+                const fallback = `Failed to hot-swap vector store (${response.status})`;
+                const payload = await response.json().catch(() => null);
+                throw new Error(payload?.error || fallback);
+            }
+            const payload: VectorStoreSwapResponse = await response.json();
+            const normalized: VectorSource = payload.source === 'geo' ? 'geo' : 'vector';
+            setVectorSource(normalized);
+            setVectorCount(payload.vector_count);
+        } catch (err) {
+            console.error('Failed to hot-swap vector store:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setSwapError(message);
+        } finally {
+            setSwapLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchStatus();
+        fetchVectorSource();
     }, []);
+
+    const swapTarget = vectorSource === 'geo' ? 'vector' : 'geo';
+    const swapLabel = swapLoading ? 'Hot-swapping...' : `Swap to ${swapTarget.toUpperCase()}`;
+    const sourceLabel = vectorSource ? vectorSource.toUpperCase() : 'UNKNOWN';
 
     return (
         <div className="border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
@@ -175,6 +255,48 @@ const DatabaseStatusPanel = () => {
                 >
                     {loading ? 'Refreshing...' : 'Refresh'}
                 </button>
+            </div>
+
+            <div className="border border-slate-200/80 rounded-lg p-3 bg-white/90 shadow-[0_8px_20px_rgba(15,23,42,0.08)] mb-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-slate-500 font-mono uppercase tracking-wide">Vector Store Hot Swap</p>
+                        <p className="text-sm font-semibold text-slate-900">
+                            Active source: <span className="font-mono">{sourceLabel}</span>
+                        </p>
+                        {vectorCount !== null && (
+                            <p className="text-xs text-slate-600 font-mono">
+                                Loaded vectors: <span className="font-semibold text-slate-900">{vectorCount.toLocaleString()}</span>
+                            </p>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleSwap}
+                        disabled={swapLoading}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold font-mono transition-all duration-300 flex items-center gap-2 ${
+                            swapLoading
+                                ? 'bg-amber-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.35)] animate-pulse'
+                                : 'bg-slate-900 text-white hover:bg-slate-800'
+                        }`}
+                    >
+                        <HotSwapSpinner active={swapLoading} />
+                        {swapLabel}
+                    </button>
+                </div>
+                {swapLoading && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 font-mono">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                        </span>
+                        Indexes are rebuilding during the hot-swap...
+                    </div>
+                )}
+                {swapError && (
+                    <div className="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 font-mono">
+                        {swapError}
+                    </div>
+                )}
             </div>
 
             {error && (

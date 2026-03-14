@@ -50,6 +50,91 @@ interface IndexStatusToggleProps {
     onToggle: () => void;
 }
 
+interface IvfSuggestion {
+    nlist: number;
+    nprobe: number;
+}
+
+interface IvfPqSuggestion extends IvfSuggestion {
+    m: number;
+    codebookSize: number;
+}
+
+interface HnswSuggestion {
+    m: number;
+    efConstruction: number;
+    efSearch: number;
+}
+
+const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const resolveVectorCount = (status: IndexStatus | null) => {
+    if (!status) {
+        return 0;
+    }
+    return Math.max(
+        status.bf?.vectorCount ?? 0,
+        status.ivf?.vectorCount ?? 0,
+        status.ivfpq?.vectorCount ?? 0,
+        status.hnsw?.vectorCount ?? 0
+    );
+};
+
+const recommendIvfParams = (vectorCount: number): IvfSuggestion | null => {
+    if (vectorCount <= 0) {
+        return null;
+    }
+    const maxNlist = Math.min(10000, Math.max(1, vectorCount));
+    const minNlist = Math.min(16, maxNlist);
+    const nlist = clampNumber(Math.round(4 * Math.sqrt(vectorCount)), minNlist, maxNlist);
+    const nprobe = clampNumber(Math.round(Math.sqrt(nlist)), 1, Math.min(128, nlist));
+    return { nlist, nprobe };
+};
+
+const recommendIvfPqParams = (vectorCount: number): IvfPqSuggestion | null => {
+    const ivfBase = recommendIvfParams(vectorCount);
+    if (!ivfBase) {
+        return null;
+    }
+    let m = 8;
+    let codebookSize = 128;
+    if (vectorCount >= 200000) {
+        m = 32;
+        codebookSize = 256;
+    } else if (vectorCount >= 50000) {
+        m = 16;
+        codebookSize = 256;
+    }
+    m = clampNumber(m, 1, 128);
+    codebookSize = clampNumber(codebookSize, 1, 1024);
+    return { ...ivfBase, m, codebookSize };
+};
+
+const recommendHnswParams = (vectorCount: number): HnswSuggestion | null => {
+    if (vectorCount <= 0) {
+        return null;
+    }
+    let m = 16;
+    let efConstruction = 200;
+    let efSearch = 50;
+    if (vectorCount >= 200000) {
+        m = 32;
+        efConstruction = 400;
+        efSearch = 100;
+    } else if (vectorCount >= 50000) {
+        m = 24;
+        efConstruction = 300;
+        efSearch = 75;
+    }
+    return {
+        m: clampNumber(m, 2, 128),
+        efConstruction: clampNumber(efConstruction, 1, 1000),
+        efSearch: clampNumber(efSearch, 1, 1000),
+    };
+};
+
+const formatCount = (value: number) => value.toLocaleString();
+
 export const IndexStatusToggle = ({ isExpanded, onToggle }: IndexStatusToggleProps) => {
     return (
         <button
@@ -175,6 +260,36 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
     const [hnswEfSearch, setHnswEfSearch] = useState(50);
     const [rebuildHnswLoading, setRebuildHnswLoading] = useState(false);
     const hasFetched = useRef(false);
+    const vectorCount = resolveVectorCount(status);
+    const ivfSuggestion = vectorCount ? recommendIvfParams(vectorCount) : null;
+    const ivfPqSuggestion = vectorCount ? recommendIvfPqParams(vectorCount) : null;
+    const hnswSuggestion = vectorCount ? recommendHnswParams(vectorCount) : null;
+    const ivfMatchesSuggestion = Boolean(
+        ivfSuggestion &&
+        status?.ivf &&
+        status.ivf.nlist === ivfSuggestion.nlist &&
+        status.ivf.nprobe === ivfSuggestion.nprobe
+    );
+    const ivfPqMatchesSuggestion = Boolean(
+        ivfPqSuggestion &&
+        status?.ivfpq &&
+        status.ivfpq.nlist === ivfPqSuggestion.nlist &&
+        status.ivfpq.nprobe === ivfPqSuggestion.nprobe &&
+        status.ivfpq.m === ivfPqSuggestion.m &&
+        status.ivfpq.codebookSize === ivfPqSuggestion.codebookSize
+    );
+    const hnswMatchesSuggestion = Boolean(
+        hnswSuggestion &&
+        status?.hnsw &&
+        status.hnsw.m === hnswSuggestion.m &&
+        status.hnsw.efConstruction === hnswSuggestion.efConstruction &&
+        status.hnsw.efSearch === hnswSuggestion.efSearch
+    );
+    const hasActionableSuggestions = Boolean(
+        (ivfSuggestion && !ivfMatchesSuggestion) ||
+        (ivfPqSuggestion && !ivfPqMatchesSuggestion) ||
+        (hnswSuggestion && !hnswMatchesSuggestion)
+    );
 
     const fetchStatus = async () => {
         setLoading(true);
@@ -306,6 +421,42 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
         }
     };
 
+    const applyIvfSuggestion = () => {
+        if (!ivfSuggestion || ivfMatchesSuggestion) {
+            return;
+        }
+        setIvfNlist(ivfSuggestion.nlist);
+        setIvfNprobe(ivfSuggestion.nprobe);
+        setEditingIvf(true);
+    };
+
+    const applyIvfPqSuggestion = () => {
+        if (!ivfPqSuggestion || ivfPqMatchesSuggestion) {
+            return;
+        }
+        setIvfPqNlist(ivfPqSuggestion.nlist);
+        setIvfPqNprobe(ivfPqSuggestion.nprobe);
+        setIvfPqM(ivfPqSuggestion.m);
+        setIvfPqCodebookSize(ivfPqSuggestion.codebookSize);
+        setEditingIvfPq(true);
+    };
+
+    const applyHnswSuggestion = () => {
+        if (!hnswSuggestion || hnswMatchesSuggestion) {
+            return;
+        }
+        setHnswM(hnswSuggestion.m);
+        setHnswEfConstruction(hnswSuggestion.efConstruction);
+        setHnswEfSearch(hnswSuggestion.efSearch);
+        setEditingHnsw(true);
+    };
+
+    const applyAllSuggestions = () => {
+        applyIvfSuggestion();
+        applyIvfPqSuggestion();
+        applyHnswSuggestion();
+    };
+
     if (!isExpanded) return null;
 
     const isTerminal = variant === 'terminal';
@@ -336,18 +487,44 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
     const secondaryButtonClass = isTerminal
         ? 'px-2 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:cursor-not-allowed transition-colors font-mono'
         : 'px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors';
+    const suggestionContainerClass = isTerminal
+        ? 'mt-3 border-t border-slate-200 pt-2 text-xs text-slate-600 font-mono'
+        : 'mt-3 border-t border-gray-200 pt-2 text-xs text-gray-600';
+    const suggestionLabelClass = isTerminal
+        ? 'text-[11px] uppercase tracking-wide text-slate-400 font-mono'
+        : 'text-[11px] uppercase tracking-wide text-gray-400';
+    const suggestionButtonClass = isTerminal
+        ? 'mt-2 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors font-mono'
+        : 'mt-2 inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors';
+    const applyAllButtonClass = isTerminal
+        ? 'px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors font-mono'
+        : 'px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors';
+    const suggestionSource = vectorCount > 0
+        ? `Based on ${formatCount(vectorCount)} vectors`
+        : 'Vector count unavailable';
 
     return (
         <div className={panelClass}>
             <div className="flex items-center justify-between mb-4">
                 <h3 className={titleClass}>Index Status</h3>
-                <button
-                    onClick={fetchStatus}
-                    disabled={loading}
-                    className={refreshClass}
-                >
-                    {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
+                <div className="flex items-center gap-2">
+                    {hasActionableSuggestions && (
+                        <button
+                            type="button"
+                            onClick={applyAllSuggestions}
+                            className={applyAllButtonClass}
+                        >
+                            Apply all suggestions
+                        </button>
+                    )}
+                    <button
+                        onClick={fetchStatus}
+                        disabled={loading}
+                        className={refreshClass}
+                    >
+                        {loading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                </div>
             </div>
 
             {loading && !status ? (
@@ -368,6 +545,14 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
                                 Vectors: <span className="font-mono font-medium">{status?.bf?.vectorCount ?? 0}</span>
                             </p>
                         </div>
+                        {vectorCount > 0 && (
+                            <div className={suggestionContainerClass}>
+                                <p className={suggestionLabelClass}>Heuristic suggestion</p>
+                                <p className={rowTextClass}>
+                                    BruteForce has no recalibration parameters. Use it as the recall baseline. {suggestionSource}
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* IVF Index Status */}
@@ -444,6 +629,22 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
                                         nprobe: <span className="font-mono font-medium">{status?.ivf?.nprobe ?? '-'}</span>
                                     </p>
                                 </>
+                            )}
+                            {ivfSuggestion && !ivfMatchesSuggestion && (
+                                <div className={suggestionContainerClass}>
+                                    <p className={suggestionLabelClass}>Heuristic suggestion</p>
+                                    <p className={rowTextClass}>
+                                        nlist: <span className="font-mono font-medium">{ivfSuggestion.nlist}</span> · nprobe:{' '}
+                                        <span className="font-mono font-medium">{ivfSuggestion.nprobe}</span> {suggestionSource}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={applyIvfSuggestion}
+                                        className={suggestionButtonClass}
+                                    >
+                                        Apply suggestions
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -551,6 +752,26 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
                                     </p>
                                 </>
                             )}
+                            {ivfPqSuggestion && !ivfPqMatchesSuggestion && (
+                                <div className={suggestionContainerClass}>
+                                    <p className={suggestionLabelClass}>Heuristic suggestion</p>
+                                    <p className={rowTextClass}>
+                                        nlist: <span className="font-mono font-medium">{ivfPqSuggestion.nlist}</span> · nprobe:{' '}
+                                        <span className="font-mono font-medium">{ivfPqSuggestion.nprobe}</span>
+                                    </p>
+                                    <p className={rowTextClass}>
+                                        m: <span className="font-mono font-medium">{ivfPqSuggestion.m}</span> · codebook:{' '}
+                                        <span className="font-mono font-medium">{ivfPqSuggestion.codebookSize}</span> {suggestionSource}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={applyIvfPqSuggestion}
+                                        className={suggestionButtonClass}
+                                    >
+                                        Apply suggestions
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -642,6 +863,23 @@ export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatu
                                         efSearch: <span className="font-mono font-medium">{status?.hnsw?.efSearch ?? '-'}</span>
                                     </p>
                                 </>
+                            )}
+                            {hnswSuggestion && !hnswMatchesSuggestion && (
+                                <div className={suggestionContainerClass}>
+                                    <p className={suggestionLabelClass}>Heuristic suggestion</p>
+                                    <p className={rowTextClass}>
+                                        M: <span className="font-mono font-medium">{hnswSuggestion.m}</span> · efConstruct:{' '}
+                                        <span className="font-mono font-medium">{hnswSuggestion.efConstruction}</span> · efSearch:{' '}
+                                        <span className="font-mono font-medium">{hnswSuggestion.efSearch}</span> {suggestionSource}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={applyHnswSuggestion}
+                                        className={suggestionButtonClass}
+                                    >
+                                        Apply suggestions
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
