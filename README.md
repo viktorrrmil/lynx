@@ -49,6 +49,10 @@ docker compose build
 docker compose up
 ```
 
+> **Note:** The geo database image is built locally to include `pgvector`. If you already ran `docker compose up` before this change, rebuild the geo service with `docker compose up --build` (or `docker compose build postgres_geo`).
+
+> **Note:** The API bootstraps the geo schema (`places` table and extensions) on startup. If you created the geo volume before the init scripts existed or changed them, remove volumes (`docker compose down -v`) to reinitialize from SQL.
+
 ### Stopping the Project
 
 ```bash

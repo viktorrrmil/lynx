@@ -20,6 +20,14 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 		fmt.Printf("[ERROR] Failed to connect to Postgres: %v\n", err)
 	}
 
+	// Connecting to Postgres geo store
+	pgGeoStore, err := storage.NewPostgresGeoStore(
+		"postgres://lynx:lynx@postgres_geo:5432/lynx_geo?sslmode=disable")
+
+	if err != nil {
+		fmt.Printf("[ERROR] Failed to connect to Postgres Geo: %v\n", err)
+	}
+
 	vectorStore := lynx.NewInMemoryVectorStore()
 
 	vectors, err := pgStore.GetAllVectors()
@@ -50,7 +58,9 @@ func NewAPI(dimension int64, metric lynx.DistanceMetric) *API {
 		vectorStore:  vectorStore,
 		vectorCache:  cache,
 		pgStore:      pgStore,
+		pgGeoStore:   pgGeoStore,
 		indexesReady: false,
+		jobHub:       newIndexingJobHub(),
 	}
 
 	// Build indexes asynchronously in background

@@ -1,6 +1,10 @@
-FROM --platform=linux/amd64 golang:alpine AS builder
+FROM --platform=linux/amd64 golang:1.22-bullseye AS builder
 
-RUN apk add --no-cache gcc g++ musl-dev make libgomp
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc g++ make libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /app
 
@@ -37,12 +41,14 @@ RUN g++ -std=c++20 -shared -fPIC -fopenmp -O3 \
 RUN nm -D /app/lib/liblynx_go.so | grep -i hnsw || echo "WARNING: HNSW symbols not found!"
 
 RUN CGO_ENABLED=1 \
-    CGO_CFLAGS="-I/app/include" \
-    CGO_LDFLAGS="-L/app/lib -llynx_go -lstdc++" \
+    CGO_CFLAGS="-I/app/include -fgnu89-inline" \
+    CGO_LDFLAGS="-L/app/lib -llynx_go -lstdc++ -Wl,--allow-multiple-definition" \
     go build -o /lynx-api ./cmd/api
 
-FROM --platform=linux/amd64 alpine:latest
-RUN apk add --no-cache libstdc++ libgomp
+FROM --platform=linux/amd64 debian:bullseye-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libstdc++6 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 RUN mkdir -p /app/data

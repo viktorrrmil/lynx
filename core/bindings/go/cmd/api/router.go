@@ -45,6 +45,7 @@ func setupRouter(api *API) *gin.Engine {
 
 	// Index status endpoint
 	router.GET("/index_status", api.getIndexStatus)
+	router.GET("/db_status", api.getDatabaseStatus)
 
 	// Benchmark
 	router.POST("/benchmark", api.runBenchmark)
@@ -53,6 +54,10 @@ func setupRouter(api *API) *gin.Engine {
 	router.POST("/benchmark/ivf_pq_param_sweep", api.runIVFPQParamSweep)
 	//router.POST("/benchmark/ivf_param_sweep/estimate", api.estimateIVFParamSweepTimeHandler)
 	//router.POST("/benchmark/ivf_pq_param_sweep/estimate", api.estimateIVFPQParamSweepTimeHandler)
+
+	// Semantic Geo Search
+	router.POST("/api/v1/semantic-geo-search/index", api.semanticGeoSearchIndex)
+	router.GET("/api/v1/semantic-geo-search/index", api.semanticGeoSearchIndex)
 
 	return router
 }

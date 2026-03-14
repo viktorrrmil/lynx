@@ -7,6 +7,27 @@ import (
 	"sync"
 )
 
+type DatabaseStatusResponse struct {
+	Databases []DatabaseStatus `json:"databases"`
+}
+
+type DatabaseStatus struct {
+	Name      string         `json:"name"`
+	Role      string         `json:"role"`
+	Connected bool           `json:"connected"`
+	Error     string         `json:"error,omitempty"`
+	Stats     *DatabaseStats `json:"stats,omitempty"`
+}
+
+type DatabaseStats struct {
+	Database       string           `json:"database"`
+	ServerVersion  string           `json:"server_version"`
+	SizeBytes      int64            `json:"size_bytes"`
+	SizePretty     string           `json:"size_pretty"`
+	TableRows      map[string]int64 `json:"table_rows"`
+	PostgisVersion string           `json:"postgis_version,omitempty"`
+}
+
 type API struct {
 	bfIndex    *lynx.BruteForceIndex
 	ivfIndex   *lynx.IVFIndex
@@ -23,11 +44,16 @@ type API struct {
 	// Postgres vector store
 	pgStore *storage.PostgresVectorStore
 
+	// Postgres geo store
+	pgGeoStore *storage.PostgresGeoStore
+
 	lock sync.RWMutex
 
 	// Track if indexes are ready
 	indexesReady     bool
 	indexesReadyLock sync.RWMutex
+
+	jobHub *indexingJobHub
 }
 
 type (
@@ -80,6 +106,28 @@ type (
 		M              int64 `json:"m"`
 		EfConstruction int64 `json:"ef_construction"`
 		EfSearch       int64 `json:"ef_search"`
+	}
+
+	SemanticGeoIndexRequest struct {
+		S3Path   string  `json:"s3_path"`
+		Region   string  `json:"region"`
+		BBoxMinX float64 `json:"bbox_min_x"`
+		BBoxMaxX float64 `json:"bbox_max_x"`
+		BBoxMinY float64 `json:"bbox_min_y"`
+		BBoxMaxY float64 `json:"bbox_max_y"`
+		All      bool    `json:"all"`
+		Count    *int64  `json:"count,omitempty"`
+	}
+
+	SemanticGeoIndexItem struct {
+		ID                string   `json:"id"`
+		Text              string   `json:"text"`
+		Name              string   `json:"name,omitempty"`
+		CategoryPrimary   string   `json:"category_primary,omitempty"`
+		CategoryAlternate []string `json:"category_alternate,omitempty"`
+		TaxonomyHierarchy []string `json:"taxonomy_hierarchy,omitempty"`
+		Locality          string   `json:"locality,omitempty"`
+		Country           string   `json:"country,omitempty"`
 	}
 
 	BenchmarkRequest struct {

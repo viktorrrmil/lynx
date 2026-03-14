@@ -1,9 +1,12 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"lynx/lynx"
 	"lynx/metrics"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -326,6 +329,71 @@ func (api *API) getInfo(c *gin.Context) {
 	c.IndentedJSON(200, info)
 }
 
+func fetchDatabaseStats(db *sql.DB, tables []string, includePostgis bool) (*DatabaseStats, []string, error) {
+	stats := &DatabaseStats{TableRows: map[string]int64{}}
+	if err := db.QueryRow("SELECT current_database()").Scan(&stats.Database); err != nil {
+		return nil, nil, fmt.Errorf("failed to query database name: %w", err)
+	}
+
+	warnings := []string{}
+
+	if err := db.QueryRow("SHOW server_version").Scan(&stats.ServerVersion); err != nil {
+		warnings = append(warnings, fmt.Sprintf("server_version: %v", err))
+	}
+
+	if err := db.QueryRow("SELECT pg_database_size(current_database())").Scan(&stats.SizeBytes); err != nil {
+		warnings = append(warnings, fmt.Sprintf("size_bytes: %v", err))
+	}
+
+	if err := db.QueryRow("SELECT pg_size_pretty(pg_database_size(current_database()))").Scan(&stats.SizePretty); err != nil {
+		warnings = append(warnings, fmt.Sprintf("size_pretty: %v", err))
+	}
+
+	for _, table := range tables {
+		var count int64
+		if err := db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&count); err != nil {
+			warnings = append(warnings, fmt.Sprintf("table %s: %v", table, err))
+			continue
+		}
+		stats.TableRows[table] = count
+	}
+
+	if includePostgis {
+		if err := db.QueryRow("SELECT PostGIS_Version()").Scan(&stats.PostgisVersion); err != nil {
+			warnings = append(warnings, fmt.Sprintf("postgis_version: %v", err))
+		}
+	}
+
+	return stats, warnings, nil
+}
+
+func buildDatabaseStatus(name string, role string, db *sql.DB, tables []string, includePostgis bool) DatabaseStatus {
+	status := DatabaseStatus{
+		Name:      name,
+		Role:      role,
+		Connected: false,
+	}
+
+	if db == nil {
+		status.Error = "database connection not initialized"
+		return status
+	}
+
+	stats, warnings, err := fetchDatabaseStats(db, tables, includePostgis)
+	if err != nil {
+		status.Error = err.Error()
+		return status
+	}
+
+	status.Connected = true
+	status.Stats = stats
+	if len(warnings) > 0 {
+		status.Error = strings.Join(warnings, "; ")
+	}
+
+	return status
+}
+
 // Vector Cache handlers
 
 // saveVectorCache saves all vectors from the vector store to the cache file
@@ -489,6 +557,25 @@ func (api *API) getIndexStatus(c *gin.Context) {
 			"efConstruction": api.hnswIndex.EfConstruction(),
 			"efSearch":       api.hnswIndex.EfSearch(),
 		},
+	})
+}
+
+func (api *API) getDatabaseStatus(c *gin.Context) {
+	var vectorDb *sql.DB
+	if api != nil && api.pgStore != nil {
+		vectorDb = api.pgStore.Db()
+	}
+
+	var geoDb *sql.DB
+	if api != nil && api.pgGeoStore != nil {
+		geoDb = api.pgGeoStore.Db()
+	}
+
+	vectorStatus := buildDatabaseStatus("Vector Store", "pgvector", vectorDb, []string{"vectors"}, false)
+	geoStatus := buildDatabaseStatus("Geo Store", "postgis", geoDb, []string{"places"}, true)
+
+	c.IndentedJSON(200, DatabaseStatusResponse{
+		Databases: []DatabaseStatus{vectorStatus, geoStatus},
 	})
 }
 

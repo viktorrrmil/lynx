@@ -25,7 +25,7 @@ func (store *PostgresVectorStore) Close() error {
 	return nil
 }
 
-func connectWithRetry(connStr string, maxRetries int) (*sql.DB, error) {
+func connectWithRetry(connStr string, maxRetries int, countTable string) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
@@ -40,13 +40,15 @@ func connectWithRetry(connStr string, maxRetries int) (*sql.DB, error) {
 		err = db.Ping()
 		if err == nil {
 			log.Println("Successfully connected to database!")
-			log.Println("Row count in vectors table:")
-			var count int64
-			err = db.QueryRow(`SELECT COUNT(*) FROM vectors`).Scan(&count)
-			if err != nil {
-				log.Printf("Failed to count rows in vectors table: %v", err)
-			} else {
-				log.Println(count)
+			if countTable != "" {
+				log.Printf("Row count in %s table:", countTable)
+				var count int64
+				err = db.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s`, countTable)).Scan(&count)
+				if err != nil {
+					log.Printf("Failed to count rows in %s table: %v", countTable, err)
+				} else {
+					log.Println(count)
+				}
 			}
 			return db, nil
 		}
@@ -59,7 +61,7 @@ func connectWithRetry(connStr string, maxRetries int) (*sql.DB, error) {
 }
 
 func NewPostgresVectorStore(connStr string) (*PostgresVectorStore, error) {
-	db, err := connectWithRetry(connStr, 10)
+	db, err := connectWithRetry(connStr, 10, "vectors")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -28,13 +28,32 @@ services:
       POSTGRES_DB: lynx
       POSTGRES_USER: lynx
       POSTGRES_PASSWORD: lynx
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lynx -d lynx"]
+      test: [ "CMD-SHELL", "pg_isready -U lynx -d lynx" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  postgres_geo:
+    build: ./postgres-geo
+    image: lynx-postgres-geo
+    environment:
+      POSTGRES_DB: lynx_geo
+      POSTGRES_USER: lynx
+      POSTGRES_PASSWORD: lynx
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_geo:/var/lib/postgresql/data
+      - ./init-db-geo:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U lynx -d lynx_geo" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -81,3 +100,4 @@ services:
 
 volumes:
   pgdata:
+  pgdata_geo:
