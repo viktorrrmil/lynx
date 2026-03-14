@@ -42,6 +42,7 @@ interface IsReadyResponse {
 
 interface IndexStatusPanelProps {
     isExpanded: boolean;
+    variant?: 'default' | 'terminal';
 }
 
 interface IndexStatusToggleProps {
@@ -119,7 +120,7 @@ export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-3">
                 {indexes.map((index) => (
                     <div
                         key={index.key}
@@ -155,7 +156,7 @@ export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
     );
 };
 
-export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
+export const IndexStatusPanel = ({ isExpanded, variant = 'default' }: IndexStatusPanelProps) => {
     const [status, setStatus] = useState<IndexStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [editingIvf, setEditingIvf] = useState(false);
@@ -307,99 +308,128 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
 
     if (!isExpanded) return null;
 
+    const isTerminal = variant === 'terminal';
+    const panelClass = isTerminal
+        ? 'border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]'
+        : 'border border-gray-200 rounded-lg p-4 bg-gray-50 mb-8';
+    const titleClass = isTerminal
+        ? 'text-sm font-semibold text-slate-900 font-mono uppercase tracking-wide'
+        : 'text-sm font-medium text-gray-900';
+    const refreshClass = isTerminal
+        ? 'text-xs text-slate-500 hover:text-slate-700 transition-colors font-mono'
+        : 'text-xs text-gray-500 hover:text-gray-700 transition-colors';
+    const loadingTextClass = isTerminal ? 'text-sm text-slate-500 font-mono' : 'text-sm text-gray-500';
+    const cardClass = isTerminal
+        ? 'border border-slate-200/80 rounded-lg p-3 bg-white/80 shadow-[0_8px_20px_rgba(15,23,42,0.08)]'
+        : 'border border-gray-200 rounded-lg p-3 bg-white';
+    const headingClass = isTerminal ? 'text-sm font-semibold text-slate-900' : 'text-sm font-medium text-gray-900';
+    const rowTextClass = isTerminal ? 'text-xs text-slate-600 font-mono' : 'text-xs text-gray-600';
+    const editButtonClass = isTerminal
+        ? 'text-xs text-slate-500 hover:text-slate-700 transition-colors font-mono'
+        : 'text-xs text-gray-500 hover:text-gray-700 transition-colors';
+    const inputClass = isTerminal
+        ? 'flex-1 px-2 py-1 text-xs border border-slate-300 rounded bg-white/80 focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 font-mono'
+        : 'flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900';
+    const primaryButtonClass = isTerminal
+        ? 'flex-1 px-2 py-1 text-xs font-semibold text-slate-50 bg-slate-900 rounded hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-mono'
+        : 'flex-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors';
+    const secondaryButtonClass = isTerminal
+        ? 'px-2 py-1 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded hover:bg-slate-50 disabled:cursor-not-allowed transition-colors font-mono'
+        : 'px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors';
+
     return (
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-8">
+        <div className={panelClass}>
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-900">Index Status</h3>
+                <h3 className={titleClass}>Index Status</h3>
                 <button
                     onClick={fetchStatus}
                     disabled={loading}
-                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                    className={refreshClass}
                 >
                     {loading ? 'Refreshing...' : 'Refresh'}
                 </button>
             </div>
 
             {loading && !status ? (
-                <p className="text-sm text-gray-500">Loading status...</p>
+                <p className={loadingTextClass}>Loading status...</p>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     {/* BruteForce Index Status */}
-                    <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className={cardClass}>
                         <div className="flex items-center gap-2 mb-2">
                             <div className={`w-2 h-2 rounded-full ${status?.bf?.initialized ? 'bg-green-500' : 'bg-gray-300'}`} />
-                            <h4 className="text-sm font-medium text-gray-900">BruteForce Index</h4>
+                            <h4 className={headingClass}>BruteForce Index</h4>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Status: <span className="font-medium">{status?.bf?.initialized ? 'Initialized' : 'Not initialized'}</span>
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Vectors: <span className="font-mono font-medium">{status?.bf?.vectorCount ?? 0}</span>
                             </p>
                         </div>
                     </div>
 
                     {/* IVF Index Status */}
-                    <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className={cardClass}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${status?.ivf?.initialized ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <h4 className="text-sm font-medium text-gray-900">IVF Index</h4>
+                                <h4 className={headingClass}>IVF Index</h4>
                             </div>
                             {!editingIvf && (
                                 <button
                                     onClick={() => setEditingIvf(true)}
-                                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                                    className={editButtonClass}
                                 >
                                     Edit
                                 </button>
                             )}
                         </div>
                         <div className="space-y-1">
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Status: <span className="font-medium">{status?.ivf?.initialized ? 'Initialized' : 'Not initialized'}</span>
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Vectors: <span className="font-mono font-medium">{status?.ivf?.vectorCount ?? 0}</span>
                             </p>
 
                             {editingIvf ? (
                                 <div className="mt-3 space-y-2">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-14">nlist:</label>
+                                        <label className={`${rowTextClass} w-14`}>nlist:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={10000}
                                             value={ivfNlist}
                                             onChange={(e) => setIvfNlist(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-14">nprobe:</label>
+                                        <label className={`${rowTextClass} w-14`}>nprobe:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={ivfNlist}
                                             value={ivfNprobe}
                                             onChange={(e) => setIvfNprobe(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         <button
                                             onClick={handleRebuildIvf}
                                             disabled={rebuildLoading}
-                                            className="flex-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                            className={primaryButtonClass}
                                         >
                                             {rebuildLoading ? 'Rebuilding...' : 'Rebuild Index'}
                                         </button>
                                         <button
                                             onClick={handleCancelEdit}
                                             disabled={rebuildLoading}
-                                            className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                                            className={secondaryButtonClass}
                                         >
                                             Cancel
                                         </button>
@@ -407,10 +437,10 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         nlist: <span className="font-mono font-medium">{status?.ivf?.nlist ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         nprobe: <span className="font-mono font-medium">{status?.ivf?.nprobe ?? '-'}</span>
                                     </p>
                                 </>
@@ -419,87 +449,87 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                     </div>
 
                     {/* IVF-PQ Index Status */}
-                    <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className={cardClass}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${status?.ivfpq?.initialized ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <h4 className="text-sm font-medium text-gray-900">IVF-PQ Index</h4>
+                                <h4 className={headingClass}>IVF-PQ Index</h4>
                             </div>
                             {!editingIvfPq && (
                                 <button
                                     onClick={() => setEditingIvfPq(true)}
-                                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                                    className={editButtonClass}
                                 >
                                     Edit
                                 </button>
                             )}
                         </div>
                         <div className="space-y-1">
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Status: <span className="font-medium">{status?.ivfpq?.initialized ? 'Initialized' : 'Not initialized'}</span>
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Vectors: <span className="font-mono font-medium">{status?.ivfpq?.vectorCount ?? 0}</span>
                             </p>
 
                             {editingIvfPq ? (
                                 <div className="mt-3 space-y-2">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">nlist:</label>
+                                        <label className={`${rowTextClass} w-20`}>nlist:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={10000}
                                             value={ivfPqNlist}
                                             onChange={(e) => setIvfPqNlist(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">nprobe:</label>
+                                        <label className={`${rowTextClass} w-20`}>nprobe:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={ivfPqNlist}
                                             value={ivfPqNprobe}
                                             onChange={(e) => setIvfPqNprobe(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">m:</label>
+                                        <label className={`${rowTextClass} w-20`}>m:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={128}
                                             value={ivfPqM}
                                             onChange={(e) => setIvfPqM(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">codebook:</label>
+                                        <label className={`${rowTextClass} w-20`}>codebook:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={1024}
                                             value={ivfPqCodebookSize}
                                             onChange={(e) => setIvfPqCodebookSize(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         <button
                                             onClick={handleRebuildIvfPq}
                                             disabled={rebuildIvfPqLoading}
-                                            className="flex-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                            className={primaryButtonClass}
                                         >
                                             {rebuildIvfPqLoading ? 'Rebuilding...' : 'Rebuild Index'}
                                         </button>
                                         <button
                                             onClick={handleCancelIvfPqEdit}
                                             disabled={rebuildIvfPqLoading}
-                                            className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                                            className={secondaryButtonClass}
                                         >
                                             Cancel
                                         </button>
@@ -507,16 +537,16 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         nlist: <span className="font-mono font-medium">{status?.ivfpq?.nlist ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         nprobe: <span className="font-mono font-medium">{status?.ivfpq?.nprobe ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         m: <span className="font-mono font-medium">{status?.ivfpq?.m ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         codebook: <span className="font-mono font-medium">{status?.ivfpq?.codebookSize ?? '-'}</span>
                                     </p>
                                 </>
@@ -525,76 +555,76 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                     </div>
 
                     {/* HNSW Index Status */}
-                    <div className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className={cardClass}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${status?.hnsw?.initialized ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <h4 className="text-sm font-medium text-gray-900">HNSW Index</h4>
+                                <h4 className={headingClass}>HNSW Index</h4>
                             </div>
                             {!editingHnsw && (
                                 <button
                                     onClick={() => setEditingHnsw(true)}
-                                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                                    className={editButtonClass}
                                 >
                                     Edit
                                 </button>
                             )}
                         </div>
                         <div className="space-y-1">
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Status: <span className="font-medium">{status?.hnsw?.initialized ? 'Initialized' : 'Not initialized'}</span>
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className={rowTextClass}>
                                 Vectors: <span className="font-mono font-medium">{status?.hnsw?.vectorCount ?? 0}</span>
                             </p>
 
                             {editingHnsw ? (
                                 <div className="mt-3 space-y-2">
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">M:</label>
+                                        <label className={`${rowTextClass} w-20`}>M:</label>
                                         <input
                                             type="number"
                                             min={2}
                                             max={128}
                                             value={hnswM}
                                             onChange={(e) => setHnswM(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">efConstruct:</label>
+                                        <label className={`${rowTextClass} w-20`}>efConstruct:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={1000}
                                             value={hnswEfConstruction}
                                             onChange={(e) => setHnswEfConstruction(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-xs text-gray-600 w-20">efSearch:</label>
+                                        <label className={`${rowTextClass} w-20`}>efSearch:</label>
                                         <input
                                             type="number"
                                             min={1}
                                             max={1000}
                                             value={hnswEfSearch}
                                             onChange={(e) => setHnswEfSearch(Number(e.target.value))}
-                                            className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                            className={inputClass}
                                         />
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         <button
                                             onClick={handleRebuildHnsw}
                                             disabled={rebuildHnswLoading}
-                                            className="flex-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                            className={primaryButtonClass}
                                         >
                                             {rebuildHnswLoading ? 'Rebuilding...' : 'Rebuild Index'}
                                         </button>
                                         <button
                                             onClick={handleCancelHnswEdit}
                                             disabled={rebuildHnswLoading}
-                                            className="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:cursor-not-allowed transition-colors"
+                                            className={secondaryButtonClass}
                                         >
                                             Cancel
                                         </button>
@@ -602,13 +632,13 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         M: <span className="font-mono font-medium">{status?.hnsw?.m ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         efConstruction: <span className="font-mono font-medium">{status?.hnsw?.efConstruction ?? '-'}</span>
                                     </p>
-                                    <p className="text-xs text-gray-600">
+                                    <p className={rowTextClass}>
                                         efSearch: <span className="font-mono font-medium">{status?.hnsw?.efSearch ?? '-'}</span>
                                     </p>
                                 </>
@@ -620,4 +650,3 @@ export const IndexStatusPanel = ({ isExpanded }: IndexStatusPanelProps) => {
         </div>
     );
 };
-

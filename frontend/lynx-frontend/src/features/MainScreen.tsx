@@ -6,6 +6,7 @@ import InfoScreen from "./InfoScreen.tsx";
 import VectorCacheSection from "./VectorCacheSection.tsx";
 import { IndexStatusPanel, IndexStatusToggle, IndexBuildingStatus } from "./IndexStatusPanel.tsx";
 import BenchmarkSection from "./BenchmarkSection.tsx";
+import MasterControlTerminal from "./MasterControlTerminal.tsx";
 
 type AppMode = 'search' | 'benchmark';
 
@@ -28,6 +29,7 @@ const MainScreen = () => {
     const [indexesReady, setIndexesReady] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('search');
     const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
+    const [showTerminal, setShowTerminal] = useState(false);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -143,83 +145,114 @@ const MainScreen = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className={`min-h-screen ${showTerminal ? 'bg-slate-50' : 'bg-white'}`}>
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="flex w-full justify-between mb-6 items-stretch gap-4">
                     <div className="flex items-center gap-6">
                         <div>
-                            <h1 className="text-2xl font-light tracking-tight text-gray-900">
-                                Lynx - Vector Search Engine
+                            <h1
+                                className={`text-2xl tracking-tight ${
+                                    showTerminal
+                                        ? 'font-semibold text-slate-900 font-mono uppercase tracking-wide'
+                                        : 'font-light text-gray-900'
+                                }`}
+                            >
+                                {showTerminal ? 'Master Control Terminal' : 'Lynx - Vector Search Engine'}
                             </h1>
-                            <p className="text-sm text-gray-500 mt-2">
-                                Compare BruteForce vs IVF index performance
+                            <p className={`text-sm mt-2 ${showTerminal ? 'text-slate-500 font-mono' : 'text-gray-500'}`}>
+                                {showTerminal
+                                    ? 'System-wide admin dashboard and operational status'
+                                    : 'Compare BruteForce vs IVF index performance'}
                             </p>
                         </div>
 
                         {/* Mode Dropdown */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-                                className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
-                            >
-                                <span className={`w-2 h-2 rounded-full ${appMode === 'search' ? 'bg-green-500' : 'bg-blue-500'}`} />
-                                {appMode === 'search' ? 'Search Mode' : 'Benchmark Mode'}
-                                <span className="text-gray-400">{modeDropdownOpen ? '▲' : '▼'}</span>
-                            </button>
+                        {!showTerminal && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${appMode === 'search' ? 'bg-green-500' : 'bg-blue-500'}`} />
+                                    {appMode === 'search' ? 'Search Mode' : 'Benchmark Mode'}
+                                    <span className="text-gray-400">{modeDropdownOpen ? '▲' : '▼'}</span>
+                                </button>
 
-                            {modeDropdownOpen && (
-                                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                    <button
-                                        onClick={() => {
-                                            setAppMode('search');
-                                            setModeDropdownOpen(false);
-                                        }}
-                                        className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-t-lg ${
-                                            appMode === 'search' ? 'bg-gray-50' : ''
-                                        }`}
-                                    >
-                                        <span className="w-2 h-2 rounded-full bg-green-500" />
-                                        Search
-                                        {appMode === 'search' && <span className="ml-auto text-gray-400">✓</span>}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setAppMode('benchmark');
-                                            setModeDropdownOpen(false);
-                                        }}
-                                        className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-b-lg ${
-                                            appMode === 'benchmark' ? 'bg-gray-50' : ''
-                                        }`}
-                                    >
-                                        <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                        Benchmark
-                                        {appMode === 'benchmark' && <span className="ml-auto text-gray-400">✓</span>}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                {modeDropdownOpen && (
+                                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                        <button
+                                            onClick={() => {
+                                                setAppMode('search');
+                                                setModeDropdownOpen(false);
+                                            }}
+                                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-t-lg ${
+                                                appMode === 'search' ? 'bg-gray-50' : ''
+                                            }`}
+                                        >
+                                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                                            Search
+                                            {appMode === 'search' && <span className="ml-auto text-gray-400">✓</span>}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setAppMode('benchmark');
+                                                setModeDropdownOpen(false);
+                                            }}
+                                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-b-lg ${
+                                                appMode === 'benchmark' ? 'bg-gray-50' : ''
+                                            }`}
+                                        >
+                                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                            Benchmark
+                                            {appMode === 'benchmark' && <span className="ml-auto text-gray-400">✓</span>}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
-                        <IndexStatusToggle
-                            isExpanded={indexStatusExpanded}
-                            onToggle={() => setIndexStatusExpanded(!indexStatusExpanded)}
-                        />
-                        <VectorCacheSection />
+                        <button
+                            onClick={() => {
+                                setShowTerminal(!showTerminal);
+                                setModeDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                showTerminal
+                                    ? 'bg-slate-900 text-slate-50 border-slate-900 hover:bg-slate-800 font-mono'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                            {showTerminal ? 'Back to Main' : 'Master Control'}
+                        </button>
+                        {!showTerminal && (
+                            <>
+                                <IndexStatusToggle
+                                    isExpanded={indexStatusExpanded}
+                                    onToggle={() => setIndexStatusExpanded(!indexStatusExpanded)}
+                                />
+                                <VectorCacheSection />
+                            </>
+                        )}
                     </div>
                 </div>
 
-                {/* Index Status Panel */}
-                <IndexStatusPanel isExpanded={indexStatusExpanded} />
-
-                {/* Index Building Status - shows when indexes are being built */}
-                {!indexesReady && (
-                    <IndexBuildingStatus onReady={() => setIndexesReady(true)} />
-                )}
-
-                {/* Search Mode Content */}
-                {appMode === 'search' && (
+                {showTerminal ? (
+                    <MasterControlTerminal />
+                ) : (
                     <>
+                        {/* Index Status Panel */}
+                        <IndexStatusPanel isExpanded={indexStatusExpanded} />
+
+                        {/* Index Building Status - shows when indexes are being built */}
+                        {!indexesReady && (
+                            <IndexBuildingStatus onReady={() => setIndexesReady(true)} />
+                        )}
+
+                        {/* Search Mode Content */}
+                        {appMode === 'search' && (
+                            <>
                         {/* Upload Section */}
                         <div className="flex w-full justify-center mb-12 items-stretch gap-4">
                             <div className="flex-1">
@@ -531,12 +564,14 @@ const MainScreen = () => {
                                 </div>
                             </div>
                         </div>
-                    </>
-                )}
+                            </>
+                        )}
 
-                {/* Benchmark Mode Content */}
-                {appMode === 'benchmark' && (
-                    <BenchmarkSection />
+                        {/* Benchmark Mode Content */}
+                        {appMode === 'benchmark' && (
+                            <BenchmarkSection />
+                        )}
+                    </>
                 )}
             </div>
         </div>
