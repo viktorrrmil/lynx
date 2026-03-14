@@ -22,6 +22,17 @@ type GeoPlace struct {
 	Raw        json.RawMessage
 }
 
+type GeoSearchResult struct {
+	ID         string          `json:"id"`
+	EmbedText  string          `json:"embed_text"`
+	Embedding  []float32       `json:"embedding"`
+	Geom       json.RawMessage `json:"geom"`
+	Category   *string         `json:"category,omitempty"`
+	Country    *string         `json:"country,omitempty"`
+	Confidence *float64        `json:"confidence,omitempty"`
+	Raw        json.RawMessage `json:"raw"`
+}
+
 type PostgresGeoStore struct {
 	db *sql.DB
 }
@@ -141,6 +152,83 @@ func (store *PostgresGeoStore) GetAllEmbeddings() ([][]float32, error) {
 	}
 
 	return vectors, nil
+}
+
+func (store *PostgresGeoStore) SearchPlaces(embedding []float32, limit int64) ([]GeoSearchResult, error) {
+	if store.db == nil {
+		return nil, fmt.Errorf("geo store database is nil")
+	}
+	if limit <= 0 {
+		return nil, fmt.Errorf("limit must be greater than 0")
+	}
+
+	rows, err := store.db.Query(`
+		SELECT
+			id,
+			embed_text,
+			embedding,
+			ST_AsGeoJSON(geom) AS geom,
+			category,
+			country,
+			confidence,
+			raw
+		FROM places
+		ORDER BY embedding <=> $1
+		LIMIT $2
+	`, pgvector.NewVector(embedding), limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query geo places: %w", err)
+	}
+	defer rows.Close()
+
+	results := []GeoSearchResult{}
+	for rows.Next() {
+		var (
+			id         string
+			embedText  string
+			vec        pgvector.Vector
+			geom       sql.NullString
+			category   sql.NullString
+			country    sql.NullString
+			confidence sql.NullFloat64
+			raw        []byte
+		)
+
+		if err := rows.Scan(&id, &embedText, &vec, &geom, &category, &country, &confidence, &raw); err != nil {
+			return nil, fmt.Errorf("failed to scan geo place: %w", err)
+		}
+
+		result := GeoSearchResult{
+			ID:        id,
+			EmbedText: embedText,
+			Embedding: vec.Slice(),
+		}
+		if geom.Valid && geom.String != "" {
+			result.Geom = json.RawMessage(geom.String)
+		}
+		if category.Valid {
+			value := category.String
+			result.Category = &value
+		}
+		if country.Valid {
+			value := country.String
+			result.Country = &value
+		}
+		if confidence.Valid {
+			value := confidence.Float64
+			result.Confidence = &value
+		}
+		if len(raw) > 0 {
+			result.Raw = json.RawMessage(raw)
+		}
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("geo place iteration failed: %w", err)
+	}
+
+	return results, nil
 }
 
 func ensureGeoSchema(db *sql.DB) error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"lynx/data_store"
 	"lynx/lynx"
 	"lynx/storage"
@@ -149,6 +150,22 @@ type (
 		TaxonomyHierarchy []string `json:"taxonomy_hierarchy,omitempty"`
 		Locality          string   `json:"locality,omitempty"`
 		Country           string   `json:"country,omitempty"`
+	}
+
+	SemanticGeoSearchRequest struct {
+		Query string `json:"query"`
+		Count int64  `json:"count"`
+	}
+
+	SemanticGeoSearchResult struct {
+		ID         string          `json:"id"`
+		EmbedText  string          `json:"embed_text"`
+		Embedding  []float32       `json:"embedding"`
+		Geom       json.RawMessage `json:"geom"`
+		Category   *string         `json:"category,omitempty"`
+		Country    *string         `json:"country,omitempty"`
+		Confidence *float64        `json:"confidence,omitempty"`
+		Raw        json.RawMessage `json:"raw"`
 	}
 
 	BenchmarkRequest struct {

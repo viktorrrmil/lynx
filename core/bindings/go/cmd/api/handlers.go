@@ -258,6 +258,42 @@ func (api *API) hnswSearch(c *gin.Context) {
 	})
 }
 
+func (api *API) semanticGeoSearch(c *gin.Context) {
+	var request SemanticGeoSearchRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	query := strings.TrimSpace(request.Query)
+	if query == "" {
+		c.JSON(400, gin.H{"error": "query is required"})
+		return
+	}
+	if request.Count <= 0 {
+		c.JSON(400, gin.H{"error": "count must be greater than 0"})
+		return
+	}
+	if api == nil || api.pgGeoStore == nil {
+		c.JSON(503, gin.H{"error": "geo store is not initialized"})
+		return
+	}
+
+	embeddedQuery, err := getEmbeddings(query)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to get embeddings for query: " + err.Error()})
+		return
+	}
+
+	results, err := api.pgGeoStore.SearchPlaces(embeddedQuery, request.Count)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Geo search failed: " + err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, results)
+}
+
 func (api *API) getVectorStoreSource(c *gin.Context) {
 	api.lock.RLock()
 	source := api.activeVectorSource

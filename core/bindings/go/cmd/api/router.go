@@ -40,6 +40,9 @@ func setupRouter(api *API) *gin.Engine {
 	router.POST("/hnsw_search", api.hnswSearch)
 	router.POST("/rebuild_hnsw", api.configureHNSW)
 
+	// Semantic Geo Search
+	router.POST("/semantic-geo-search", api.semanticGeoSearch)
+
 	// Vector Cache endpoints
 	router.POST("/vector_cache/save", api.saveVectorCache)
 	router.POST("/vector_cache/load", api.loadVectorCache)
