@@ -748,7 +748,7 @@ func (api *API) getDatabaseStatus(c *gin.Context) {
 	}
 
 	vectorStatus := buildDatabaseStatus("Vector Store", "pgvector", vectorDb, []string{"vectors"}, false)
-	geoStatus := buildDatabaseStatus("Geo Store", "postgis", geoDb, []string{"places"}, true)
+	geoStatus := buildDatabaseStatus("Geo Store", "postgis", geoDb, []string{"places", "indexed_areas"}, true)
 
 	c.IndentedJSON(200, DatabaseStatusResponse{
 		Databases: []DatabaseStatus{vectorStatus, geoStatus},

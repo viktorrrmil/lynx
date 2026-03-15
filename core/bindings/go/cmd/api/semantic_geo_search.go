@@ -196,12 +196,17 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		return failJob(fmt.Errorf("failed to initialize DuckDB S3 access: %w", err))
 	}
 
-	totalCount, err := countSemanticGeoItems(db, request)
+	totalAvailable, err := countSemanticGeoItemsTotal(db, request)
 	if err != nil {
 		return failJob(err)
 	}
 
-	result.Count = int(totalCount)
+	countToIndex := totalAvailable
+	if !request.All && request.Count != nil && *request.Count < totalAvailable {
+		countToIndex = *request.Count
+	}
+
+	result.Count = int(countToIndex)
 	result.Indexed = 0
 	result.Items = make([]SemanticGeoIndexItem, 0, result.Count)
 
@@ -212,6 +217,10 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 	}
 
 	if result.Count == 0 {
+		if _, err := api.pgGeoStore.DeleteEmptyIndexedAreas(); err != nil {
+			return failJob(fmt.Errorf("failed to delete empty indexed areas: %w", err))
+		}
+
 		if api.jobHub != nil && jobID != "" {
 			api.jobHub.updateJob(jobID, func(job *IndexingJob) {
 				job.Status = "completed"
@@ -345,6 +354,19 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		return failJob(fmt.Errorf("failed to index batch: %w", err))
 	}
 
+	if err := api.pgGeoStore.UpsertIndexedArea(storage.GeoIndexedArea{
+		Source:        request.S3Path,
+		BBoxMinX:      request.BBoxMinX,
+		BBoxMaxX:      request.BBoxMaxX,
+		BBoxMinY:      request.BBoxMinY,
+		BBoxMaxY:      request.BBoxMaxY,
+		TotalPoints:   totalAvailable,
+		IndexedPoints: int64(processed),
+		IndexedAt:     time.Now().UTC(),
+	}); err != nil {
+		return failJob(fmt.Errorf("failed to upsert indexed area: %w", err))
+	}
+
 	if api.jobHub != nil && jobID != "" {
 		api.jobHub.updateJob(jobID, func(job *IndexingJob) {
 			job.Status = "completed"
@@ -356,7 +378,7 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 	return result, nil
 }
 
-func countSemanticGeoItems(db *sql.DB, request SemanticGeoIndexRequest) (int64, error) {
+func countSemanticGeoItemsTotal(db *sql.DB, request SemanticGeoIndexRequest) (int64, error) {
 	query := `
 		SELECT COUNT(*)
 		FROM read_parquet(?)
@@ -374,10 +396,6 @@ func countSemanticGeoItems(db *sql.DB, request SemanticGeoIndexRequest) (int64, 
 	var count int64
 	if err := db.QueryRow(query, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("failed to count DuckDB rows: %w", err)
-	}
-
-	if !request.All && request.Count != nil && *request.Count < count {
-		return *request.Count, nil
 	}
 
 	return count, nil

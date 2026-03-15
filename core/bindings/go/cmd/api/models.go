@@ -168,6 +168,26 @@ type (
 		Raw        json.RawMessage `json:"raw"`
 	}
 
+	IndexedAreaBBox struct {
+		MinX float64 `json:"min_x"`
+		MaxX float64 `json:"max_x"`
+		MinY float64 `json:"min_y"`
+		MaxY float64 `json:"max_y"`
+	}
+
+	IndexedArea struct {
+		Source         string          `json:"source"`
+		BBox           IndexedAreaBBox `json:"bbox"`
+		TotalPoints    int64           `json:"total_points"`
+		IndexedPoints  int64           `json:"indexed_points"`
+		IndexedPercent float64         `json:"indexed_percent"`
+		IndexedAt      string          `json:"indexed_at"`
+	}
+
+	IndexedAreasResponse struct {
+		Areas []IndexedArea `json:"areas"`
+	}
+
 	BenchmarkRequest struct {
 		NumQueries int      `json:"num_queries"`
 		Queries    []string `json:"queries"`

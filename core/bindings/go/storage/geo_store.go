@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/pgvector/pgvector-go"
@@ -31,6 +32,17 @@ type GeoSearchResult struct {
 	Country    *string         `json:"country,omitempty"`
 	Confidence *float64        `json:"confidence,omitempty"`
 	Raw        json.RawMessage `json:"raw"`
+}
+
+type GeoIndexedArea struct {
+	Source        string
+	BBoxMinX      float64
+	BBoxMaxX      float64
+	BBoxMinY      float64
+	BBoxMaxY      float64
+	TotalPoints   int64
+	IndexedPoints int64
+	IndexedAt     time.Time
 }
 
 type PostgresGeoStore struct {
@@ -231,6 +243,110 @@ func (store *PostgresGeoStore) SearchPlaces(embedding []float32, limit int64) ([
 	return results, nil
 }
 
+func (store *PostgresGeoStore) UpsertIndexedArea(area GeoIndexedArea) error {
+	if store.db == nil {
+		return fmt.Errorf("geo store database is nil")
+	}
+
+	_, err := store.db.Exec(`
+		INSERT INTO indexed_areas (
+			source,
+			bbox_min_x,
+			bbox_max_x,
+			bbox_min_y,
+			bbox_max_y,
+			total_points,
+			indexed_points,
+			indexed_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (source, bbox_min_x, bbox_max_x, bbox_min_y, bbox_max_y) DO UPDATE SET
+			total_points = EXCLUDED.total_points,
+			indexed_points = EXCLUDED.indexed_points,
+			indexed_at = EXCLUDED.indexed_at
+	`,
+		area.Source,
+		area.BBoxMinX,
+		area.BBoxMaxX,
+		area.BBoxMinY,
+		area.BBoxMaxY,
+		area.TotalPoints,
+		area.IndexedPoints,
+		area.IndexedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to upsert indexed area: %w", err)
+	}
+
+	return nil
+}
+
+func (store *PostgresGeoStore) ListIndexedAreas() ([]GeoIndexedArea, error) {
+	if store.db == nil {
+		return nil, fmt.Errorf("geo store database is nil")
+	}
+
+	rows, err := store.db.Query(`
+		SELECT
+			source,
+			bbox_min_x,
+			bbox_max_x,
+			bbox_min_y,
+			bbox_max_y,
+			total_points,
+			indexed_points,
+			indexed_at
+		FROM indexed_areas
+		ORDER BY indexed_at DESC, source
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list indexed areas: %w", err)
+	}
+	defer rows.Close()
+
+	var areas []GeoIndexedArea
+	for rows.Next() {
+		var area GeoIndexedArea
+		if err := rows.Scan(
+			&area.Source,
+			&area.BBoxMinX,
+			&area.BBoxMaxX,
+			&area.BBoxMinY,
+			&area.BBoxMaxY,
+			&area.TotalPoints,
+			&area.IndexedPoints,
+			&area.IndexedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan indexed area: %w", err)
+		}
+		areas = append(areas, area)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("indexed area iteration failed: %w", err)
+	}
+
+	return areas, nil
+}
+
+func (store *PostgresGeoStore) DeleteEmptyIndexedAreas() (int64, error) {
+	if store.db == nil {
+		return 0, fmt.Errorf("geo store database is nil")
+	}
+
+	result, err := store.db.Exec(`DELETE FROM indexed_areas WHERE total_points <= 0`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete empty indexed areas: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read deleted indexed areas count: %w", err)
+	}
+
+	return rows, nil
+}
+
 func ensureGeoSchema(db *sql.DB) error {
 	if db == nil {
 		return fmt.Errorf("geo schema initialization failed: database is nil")
@@ -255,6 +371,23 @@ func ensureGeoSchema(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS places_geom_idx ON places USING GIST (geom);
 		CREATE INDEX IF NOT EXISTS places_embedding_idx ON places USING hnsw (embedding vector_cosine_ops);
 		CREATE INDEX IF NOT EXISTS places_category_idx ON places (category);
+
+		CREATE TABLE IF NOT EXISTS indexed_areas
+		(
+			id             BIGSERIAL PRIMARY KEY,
+			source         TEXT NOT NULL,
+			bbox_min_x     DOUBLE PRECISION NOT NULL,
+			bbox_max_x     DOUBLE PRECISION NOT NULL,
+			bbox_min_y     DOUBLE PRECISION NOT NULL,
+			bbox_max_y     DOUBLE PRECISION NOT NULL,
+			total_points   BIGINT NOT NULL,
+			indexed_points BIGINT NOT NULL,
+			indexed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			UNIQUE (source, bbox_min_x, bbox_max_x, bbox_min_y, bbox_max_y)
+		);
+
+		CREATE INDEX IF NOT EXISTS indexed_areas_source_idx ON indexed_areas (source);
+		CREATE INDEX IF NOT EXISTS indexed_areas_indexed_at_idx ON indexed_areas (indexed_at DESC);
 	`)
 	if err != nil {
 		return fmt.Errorf("geo schema initialization failed: %w", err)
