@@ -5,12 +5,14 @@
 #include "lynx/ivf_pq_index.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <limits>
 
 #include "../include/lynx/utils/kmeans.h"
 #include "lynx/in_memory_vector_store.h"
+#include "lynx/training_time_utils.h"
 #include "lynx/utils/logging.h"
 
 IVFPQIndex::IVFPQIndex(DistanceMetric metric, std::int64_t nlist, std::int64_t nprobe, std::int64_t m, std::int64_t codebook_size)
@@ -296,6 +298,38 @@ bool IVFPQIndex::update_vectors() {
     }
 
     return true;
+}
+
+std::int64_t IVFPQIndex::estimate_training_time_ns(
+    int dimension,
+    std::int64_t nlist,
+    std::int64_t nprobe,
+    std::int64_t m,
+    std::int64_t codebook_size
+) {
+    if (dimension <= 0 || nlist <= 0 || nprobe <= 0 || m <= 0 || codebook_size <= 0) {
+        return -1;
+    }
+
+    if (dimension % m != 0) {
+        return -1;
+    }
+
+    auto sample_store = build_training_sample_store(dimension, kTrainingSampleSize, DistanceMetric::COSINE);
+    if (!sample_store) {
+        return -1;
+    }
+
+    IVFPQIndex index(DistanceMetric::COSINE, nlist, nprobe, m, codebook_size);
+    auto start = std::chrono::steady_clock::now();
+    bool ok = index.set_vector_store(sample_store);
+    auto end = std::chrono::steady_clock::now();
+
+    if (!ok) {
+        return -1;
+    }
+
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 std::size_t IVFPQIndex::size() const {

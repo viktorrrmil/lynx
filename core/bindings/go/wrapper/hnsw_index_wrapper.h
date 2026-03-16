@@ -52,6 +52,8 @@ extern "C" {
 
     int HNSWIndex_update_vectors(void *index);
 
+    long long HNSWIndex_estimate_training_time_ns(long dimension, long M, long ef_construction, long ef_search);
+
 #ifdef __cplusplus
 }
 #endif

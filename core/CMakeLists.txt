@@ -26,6 +26,7 @@ add_library(lynx_core
         src/index_loader.cpp
         src/index_registry.cpp
         src/serialization.cpp
+        src/training_time_utils.cpp
         src/utils/logging.cpp
 )
 

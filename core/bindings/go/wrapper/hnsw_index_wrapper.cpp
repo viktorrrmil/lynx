@@ -110,4 +110,13 @@ extern "C" {
         // Rebuild the HNSW graph with the updated vectors
         return hnsw_index->build() ? 1 : 0;
     }
+
+    long long HNSWIndex_estimate_training_time_ns(long dimension, long M, long ef_construction, long ef_search) {
+        return static_cast<long long>(HNSWIndex::estimate_training_time_ns(
+            static_cast<int>(dimension),
+            static_cast<int>(M),
+            static_cast<int>(ef_construction),
+            static_cast<int>(ef_search)
+        ));
+    }
 }

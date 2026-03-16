@@ -5,6 +5,7 @@
 #include "lynx/hnsw_index.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <queue>
 #include <random>
@@ -12,6 +13,7 @@
 #include <unordered_set>
 
 #include "lynx/in_memory_vector_store.h"
+#include "lynx/training_time_utils.h"
 
 HNSWIndex::HNSWIndex(DistanceMetric metric, int M, int ef_construction, int ef_search)
     : distance_metric_(metric), M_(M), m_max0_(2 * M),
@@ -288,4 +290,31 @@ void HNSWIndex::clear() {
     nodes_.clear();
     entry_point_ = NO_ENTRY_POINT;
     max_layer_ = 0;
+}
+
+std::int64_t HNSWIndex::estimate_training_time_ns(
+    int dimension,
+    int M,
+    int ef_construction,
+    int ef_search
+) {
+    if (dimension <= 0 || M <= 0 || ef_construction <= 0 || ef_search <= 0) {
+        return -1;
+    }
+
+    auto sample_store = build_training_sample_store(dimension, kTrainingSampleSize, DistanceMetric::COSINE);
+    if (!sample_store) {
+        return -1;
+    }
+
+    HNSWIndex index(DistanceMetric::COSINE, M, ef_construction, ef_search);
+    auto start = std::chrono::steady_clock::now();
+    bool ok = index.set_vector_store(sample_store);
+    auto end = std::chrono::steady_clock::now();
+
+    if (!ok) {
+        return -1;
+    }
+
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }

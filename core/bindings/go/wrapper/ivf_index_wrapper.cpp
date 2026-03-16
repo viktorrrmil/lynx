@@ -106,4 +106,12 @@ int IVFIndex_update_vectors(void *index) {
     auto *ivf_index = static_cast<IVFIndex *>(index);
     return ivf_index->update_vectors() ? 1 : 0;
 }
+
+long long IVFIndex_estimate_training_time_ns(long dimension, long nlist, long nprobe) {
+    return static_cast<long long>(IVFIndex::estimate_training_time_ns(
+        static_cast<int>(dimension),
+        static_cast<std::int64_t>(nlist),
+        static_cast<std::int64_t>(nprobe)
+    ));
+}
 }

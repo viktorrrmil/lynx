@@ -77,4 +77,8 @@ int BruteForceIndex_is_initialized(void *index) {
     auto *bf_index = static_cast<BruteForceIndex *>(index);
     return bf_index->is_initialized() ? 1 : 0;
 }
+
+long long BruteForceIndex_estimate_training_time_ns(long dimension) {
+    return static_cast<long long>(BruteForceIndex::estimate_training_time_ns(static_cast<int>(dimension)));
+}
 }

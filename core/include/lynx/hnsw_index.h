@@ -5,6 +5,7 @@
 #ifndef LYNX_HNSW_INDEX_H
 #define LYNX_HNSW_INDEX_H
 
+#include <cstdint>
 #include <queue>
 #include <random>
 
@@ -57,6 +58,13 @@ public:
     IndexType type() const override;
 
     bool set_vector_store(std::shared_ptr<InMemoryVectorStore> store) override;
+
+    static std::int64_t estimate_training_time_ns(
+        int dimension,
+        int M,
+        int ef_construction,
+        int ef_search
+    );
 
     size_t size() const;
 

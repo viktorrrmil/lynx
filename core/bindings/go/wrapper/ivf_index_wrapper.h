@@ -51,6 +51,8 @@ int IVFIndex_set_vector_store(void *index, void *store);
 
 int IVFIndex_update_vectors(void *index);
 
+long long IVFIndex_estimate_training_time_ns(long dimension, long nlist, long nprobe);
+
 #ifdef __cplusplus
 }
 #endif

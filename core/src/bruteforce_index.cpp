@@ -12,6 +12,7 @@
 
 #include "../include/lynx/in_memory_vector_store.h"
 #include "../include/lynx/serialization.h"
+#include "lynx/training_time_utils.h"
 
 BruteForceIndex::BruteForceIndex(DistanceMetric metric) : distance_metric_(metric) {}
 
@@ -79,4 +80,26 @@ size_t BruteForceIndex::size() const {
 int BruteForceIndex::dimension() const {
     if (!vector_store_) return 0;
     return vector_store_->dimension();
+}
+
+std::int64_t BruteForceIndex::estimate_training_time_ns(int dimension) {
+    if (dimension <= 0) {
+        return -1;
+    }
+
+    auto sample_store = build_training_sample_store(dimension, kTrainingSampleSize, DistanceMetric::COSINE);
+    if (!sample_store) {
+        return -1;
+    }
+
+    BruteForceIndex index(DistanceMetric::COSINE);
+    auto start = std::chrono::steady_clock::now();
+    bool ok = index.set_vector_store(sample_store);
+    auto end = std::chrono::steady_clock::now();
+
+    if (!ok) {
+        return -1;
+    }
+
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }

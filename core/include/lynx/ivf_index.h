@@ -4,6 +4,7 @@
 
 #ifndef LYNX_IVF_INDEX_H
 #define LYNX_IVF_INDEX_H
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
@@ -53,6 +54,8 @@ public:
     IndexType type() const override;
 
     bool set_vector_store(std::shared_ptr<InMemoryVectorStore> store) override;
+
+    static std::int64_t estimate_training_time_ns(int dimension, std::int64_t nlist, std::int64_t nprobe);
 
     size_t size() const;
 

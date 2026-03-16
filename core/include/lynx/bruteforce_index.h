@@ -4,6 +4,7 @@
 
 #ifndef LYNX_BRUTEFORCE_INDEX_H
 #define LYNX_BRUTEFORCE_INDEX_H
+#include <cstdint>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -37,6 +38,8 @@ public:
     IndexType type() const override;
 
     bool set_vector_store(std::shared_ptr<InMemoryVectorStore> store) override;
+
+    static std::int64_t estimate_training_time_ns(int dimension);
 
     size_t size() const;
 

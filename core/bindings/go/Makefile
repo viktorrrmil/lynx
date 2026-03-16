@@ -30,6 +30,7 @@ CORE_SOURCES = \
 	$(SRC_DIR)/index_registry.cpp \
 	$(SRC_DIR)/utils/metric.cpp \
 	$(SRC_DIR)/utils/k_means/kmeans.cpp \
+	$(SRC_DIR)/training_time_utils.cpp \
 	$(SRC_DIR)/utils/logging.cpp
 
 WRAPPER_SOURCES = \

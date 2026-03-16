@@ -37,6 +37,8 @@ int BruteForceIndex_is_initialized(void *index);
 
 int BruteForceIndex_set_vector_store(void *index, void *store);
 
+long long BruteForceIndex_estimate_training_time_ns(long dimension);
+
 // void free(void* index);
 
 #ifdef __cplusplus

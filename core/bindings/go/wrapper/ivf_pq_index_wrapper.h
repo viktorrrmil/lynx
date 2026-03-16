@@ -59,6 +59,8 @@ extern "C" {
 
     int IVFPQIndex_update_vectors(void *index);
 
+    long long IVFPQIndex_estimate_training_time_ns(long dimension, long nlist, long nprobe, long m, long codebook_size);
+
 #ifdef __cplusplus
 }
 #endif
