@@ -146,7 +146,7 @@ const MainScreen = () => {
 
     return (
         <div className={`min-h-screen ${showTerminal ? 'bg-slate-50' : 'bg-white'}`}>
-            <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className={`${showTerminal ? 'max-w-screen-2xl' : 'max-w-7xl'} mx-auto px-6 py-8`}>
                 {/* Header */}
                 <div className="flex w-full justify-between mb-6 items-stretch gap-4">
                     <div className="flex items-center gap-6">

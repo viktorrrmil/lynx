@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { IndexStatusPanel } from "./IndexStatusPanel.tsx";
+import { TrainingTimeEstimatorPanel } from "./TrainingTimeEstimatorPanel.tsx";
 import { ActiveIndexingJobsPanel } from "./ActiveIndexingJobsPanel.tsx";
 
 interface IsReadyResponse {
@@ -375,14 +376,23 @@ const DatabaseStatusPanel = () => {
 const MasterControlTerminal = () => {
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="space-y-6 xl:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                <div className="space-y-6 xl:col-span-6">
                     <IndexActivityPanel />
                     <ActiveIndexingJobsPanel />
                 </div>
-                <div className="space-y-6">
-                    <DatabaseStatusPanel />
-                    <IndexStatusPanel isExpanded={true} variant="terminal" />
+                <div className="space-y-6 xl:col-span-6">
+                    <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+                        <div className="2xl:col-span-2">
+                            <DatabaseStatusPanel />
+                        </div>
+                        <div className="2xl:col-span-2">
+                            <IndexStatusPanel isExpanded={true} variant="terminal" />
+                        </div>
+                        <div className="2xl:col-span-2">
+                            <TrainingTimeEstimatorPanel />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

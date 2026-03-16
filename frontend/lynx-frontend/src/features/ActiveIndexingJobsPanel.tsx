@@ -54,6 +54,7 @@ export const ActiveIndexingJobsPanel = () => {
     const [jobs, setJobs] = useState<Record<string, IndexingJob>>({});
     const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed' | 'error'>('connecting');
     const [socketError, setSocketError] = useState<string | null>(null);
+    const [isExpanded, setIsExpanded] = useState(true);
     const socketRef = useRef<WebSocket | null>(null);
     const reconnectTimerRef = useRef<number | null>(null);
     const connectRef = useRef<() => void>(() => {});
@@ -146,7 +147,7 @@ export const ActiveIndexingJobsPanel = () => {
         }
 
         return (
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {list.map((job) => {
                     const total = job.total_points || 0;
                     const indexed = job.indexed_points || 0;
@@ -162,11 +163,11 @@ export const ActiveIndexingJobsPanel = () => {
                             : 0;
                     const status = statusStyles[job.status];
                     const isActive = job.status === 'running' || job.status === 'queued';
-                    const cardPadding = isZeroPoints ? 'p-3' : 'p-3';
-                    const titleClass = isZeroPoints ? 'text-sm font-semibold text-slate-900' : 'text-sm font-semibold text-slate-900';
-                    const metaClass = isZeroPoints ? 'text-xs text-slate-500 font-mono' : 'text-xs text-slate-500 font-mono';
-                    const statusBadgeClass = isZeroPoints ? 'text-[10px]' : 'text-[11px]';
-                    const progressTextClass = isZeroPoints ? 'text-xs text-slate-600 font-mono' : 'text-xs text-slate-600 font-mono';
+                    const cardPadding = 'p-2';
+                    const titleClass = 'text-xs font-semibold text-slate-900';
+                    const metaClass = 'text-[11px] text-slate-500 font-mono';
+                    const statusBadgeClass = 'text-[10px]';
+                    const progressTextClass = 'text-[11px] text-slate-600 font-mono';
                     const baseCardClass = isZeroPoints
                         ? 'border border-dashed border-slate-300/80 bg-slate-50/80'
                         : status.card;
@@ -181,12 +182,12 @@ export const ActiveIndexingJobsPanel = () => {
                     return (
                         <div
                             key={job.id}
-                            className={`border rounded-lg ${cardPadding} ${baseCardClass} transition-all duration-300 hover:border-slate-300 shadow-[0_12px_30px_rgba(15,23,42,0.08)]`}
+                            className={`border rounded-lg ${cardPadding} ${baseCardClass} transition-all duration-300 hover:border-slate-300 shadow-[0_8px_20px_rgba(15,23,42,0.08)]`}
                         >
                             <div className={`flex items-center justify-between ${isZeroPoints ? 'mb-2' : 'mb-2'}`}>
                                 <div className="flex items-center gap-2">
                                     <span
-                                        className={`w-2.5 h-2.5 rounded-full ${status.dot} ${isActive ? 'animate-pulse' : ''}`}
+                                        className={`w-2 h-2 rounded-full ${status.dot} ${isActive ? 'animate-pulse' : ''}`}
                                     />
                                     <div>
                                         <p className={titleClass}>Semantic Geo Index</p>
@@ -195,7 +196,7 @@ export const ActiveIndexingJobsPanel = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {isZeroPoints && (
-                                        <span className="text-[10px] text-nowrap font-semibold uppercase text-slate-500 border border-slate-300 bg-white px-2.5 py-1 rounded-full font-mono">
+                                        <span className="text-[10px] text-nowrap font-semibold uppercase text-slate-500 border border-slate-300 bg-white px-2 py-0.5 rounded-full font-mono">
                                             No points
                                         </span>
                                     )}
@@ -216,7 +217,7 @@ export const ActiveIndexingJobsPanel = () => {
                                     </span>
                                     <span>{hasTotal ? `${progress}%` : isCounting ? '--' : '0%'}</span>
                                 </div>
-                                <div className="h-2 rounded-full bg-white border border-slate-200 overflow-hidden">
+                                <div className="h-1.5 rounded-full bg-white border border-slate-200 overflow-hidden">
                                     <div
                                         className={`h-full rounded-full ${isActive ? 'animate-pulse' : ''} ${barClass}`}
                                         style={{ width: `${progress}%` }}
@@ -242,46 +243,63 @@ export const ActiveIndexingJobsPanel = () => {
     };
 
     return (
-        <div className="space-y-4">
-            <div className="border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <h3 className="text-sm font-semibold text-slate-900">Ongoing Indexing Jobs</h3>
-                        <p className="text-xs text-slate-500 font-mono">
-                            {ongoingJobs.length} active {ongoingJobs.length === 1 ? 'job' : 'jobs'} (queued or running).
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span
-                            className={`w-2 h-2 rounded-full ${
-                                connectionState === 'open' ? 'bg-emerald-500' : connectionState === 'connecting' ? 'bg-amber-400' : 'bg-rose-500'
-                            }`}
-                        />
-                        <span className="text-xs text-slate-500 capitalize font-mono">{connectionState}</span>
-                    </div>
+        <div className="border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-900">Indexing Jobs</h3>
+                    <p className="text-xs text-slate-500 font-mono">
+                        {ongoingJobs.length} active · {finishedJobs.length} finished
+                    </p>
                 </div>
-
-                {socketError && (
-                    <div className="mb-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 font-mono">
-                        {socketError}
-                    </div>
-                )}
-
-                {renderJobs(ongoingJobs, 'No ongoing indexing jobs.')}
+                <div className="flex items-center gap-3">
+                    <span
+                        className={`w-2 h-2 rounded-full ${
+                            connectionState === 'open' ? 'bg-emerald-500' : connectionState === 'connecting' ? 'bg-amber-400' : 'bg-rose-500'
+                        }`}
+                    />
+                    <span className="text-xs text-slate-500 capitalize font-mono">{connectionState}</span>
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded((prev) => !prev)}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-800 font-mono"
+                    >
+                        {isExpanded ? 'Hide' : 'Show'}
+                    </button>
+                </div>
             </div>
 
-            <div className="border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <h3 className="text-sm font-semibold text-slate-900">Finished Indexing Jobs</h3>
-                        <p className="text-xs text-slate-500 font-mono">
-                            {finishedJobs.length} completed {finishedJobs.length === 1 ? 'job' : 'jobs'} (success or failed).
-                        </p>
+            {socketError && (
+                <div className="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 font-mono">
+                    {socketError}
+                </div>
+            )}
+
+            {isExpanded ? (
+                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide font-mono">Ongoing</h4>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                                {ongoingJobs.length} active
+                            </span>
+                        </div>
+                        {renderJobs(ongoingJobs, 'No ongoing indexing jobs.')}
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide font-mono">Finished</h4>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                                {finishedJobs.length} completed
+                            </span>
+                        </div>
+                        {renderJobs(finishedJobs, 'No finished indexing jobs yet.')}
                     </div>
                 </div>
-
-                {renderJobs(finishedJobs, 'No finished indexing jobs yet.')}
-            </div>
+            ) : (
+                <p className="mt-3 text-xs text-slate-500 font-mono">
+                    Jobs hidden. Toggle to view details.
+                </p>
+            )}
         </div>
     );
 };
