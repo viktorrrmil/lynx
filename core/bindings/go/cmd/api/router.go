@@ -27,18 +27,22 @@ func setupRouter(api *API) *gin.Engine {
 
 	// Bruteforce endpoints
 	router.POST("/bf_search", api.bfSearch)
+	router.POST("/estimate/bf_training_time", api.estimateBruteForceTrainingTime)
 
 	// IVF endpoints
 	router.POST("/ivf_search", api.ivfSearch)
 	router.POST("/rebuild_ivf", api.configureIVF)
+	router.POST("/estimate/ivf_training_time", api.estimateIVFTrainingTime)
 
 	// IVF-PQ endpoints
 	router.POST("/ivf_pq_search", api.ivfPqSearch)
 	router.POST("/rebuild_ivf_pq", api.configureIVFPQ)
+	router.POST("/estimate/ivf_pq_training_time", api.estimateIVFPQTrainingTime)
 
 	// HNSW endpoints
 	router.POST("/hnsw_search", api.hnswSearch)
 	router.POST("/rebuild_hnsw", api.configureHNSW)
+	router.POST("/estimate/hnsw_training_time", api.estimateHNSWTrainingTime)
 
 	// Semantic Geo Search
 	router.POST("/semantic-geo-search", api.semanticGeoSearch)

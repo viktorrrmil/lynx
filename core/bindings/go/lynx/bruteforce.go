@@ -91,3 +91,11 @@ func (b *BruteForceIndex) SetVectorStore(store *InMemoryVectorStore) bool {
 func (b *BruteForceIndex) IsInitialized() bool {
 	return C.BruteForceIndex_is_initialized(b.ptr) == 1
 }
+
+func EstimateBruteForceTrainingTimeNs(dimension int64) (int64, error) {
+	timeNs := int64(C.BruteForceIndex_estimate_training_time_ns(C.long(dimension)))
+	if timeNs < 0 {
+		return 0, errors.New("failed to estimate BruteForce training time")
+	}
+	return timeNs, nil
+}

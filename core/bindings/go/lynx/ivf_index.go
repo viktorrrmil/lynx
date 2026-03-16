@@ -141,3 +141,11 @@ func (i *IVFIndex) SetNProbe(nProbe int64) {
 func (i *IVFIndex) IsInitialized() bool {
 	return C.IVFIndex_is_initialized(i.ptr) == 1
 }
+
+func EstimateIVFTrainingTimeNs(dimension int64, nList int64, nProbe int64) (int64, error) {
+	timeNs := int64(C.IVFIndex_estimate_training_time_ns(C.long(dimension), C.long(nList), C.long(nProbe)))
+	if timeNs < 0 {
+		return 0, errors.New("failed to estimate IVF training time")
+	}
+	return timeNs, nil
+}

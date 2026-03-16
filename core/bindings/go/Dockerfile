@@ -30,6 +30,7 @@ RUN g++ -std=c++20 -shared -fPIC -fopenmp -O3 \
     /app/src/index_registry.cpp \
     /app/src/utils/metric.cpp \
     /app/src/utils/k_means/kmeans.cpp \
+    /app/src/training_time_utils.cpp \
     /app/src/utils/logging.cpp \
     /app/wrapper/bruteforce_index_wrapper.cpp \
     /app/wrapper/ivf_index_wrapper.cpp \

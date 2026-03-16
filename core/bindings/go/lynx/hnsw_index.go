@@ -159,3 +159,16 @@ func (h *HNSWIndex) IsBuilt() bool {
 
 	return C.HNSWIndex_is_built(h.ptr) == 1
 }
+
+func EstimateHNSWTrainingTimeNs(dimension int64, M int64, efConstruction int64, efSearch int64) (int64, error) {
+	timeNs := int64(C.HNSWIndex_estimate_training_time_ns(
+		C.long(dimension),
+		C.long(M),
+		C.long(efConstruction),
+		C.long(efSearch),
+	))
+	if timeNs < 0 {
+		return 0, errors.New("failed to estimate HNSW training time")
+	}
+	return timeNs, nil
+}

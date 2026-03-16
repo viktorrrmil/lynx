@@ -706,6 +706,106 @@ func (api *API) configureHNSW(c *gin.Context) {
 	})
 }
 
+func (api *API) estimateBruteForceTrainingTime(c *gin.Context) {
+	var request EstimateBruteForceTrainingTimeRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Dimension <= 0 {
+		c.JSON(400, gin.H{"error": "dimension must be greater than 0"})
+		return
+	}
+
+	timeNs, err := lynx.EstimateBruteForceTrainingTimeNs(request.Dimension)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, EstimateTrainingTimeResponse{EstimatedTimeNs: timeNs})
+}
+
+func (api *API) estimateIVFTrainingTime(c *gin.Context) {
+	var request EstimateIVFTrainingTimeRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Dimension <= 0 || request.Nlist <= 0 || request.Nprobe <= 0 {
+		c.JSON(400, gin.H{"error": "dimension, nlist, and nprobe must be greater than 0"})
+		return
+	}
+
+	timeNs, err := lynx.EstimateIVFTrainingTimeNs(request.Dimension, request.Nlist, request.Nprobe)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, EstimateTrainingTimeResponse{EstimatedTimeNs: timeNs})
+}
+
+func (api *API) estimateIVFPQTrainingTime(c *gin.Context) {
+	var request EstimateIVFPQTrainingTimeRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Dimension <= 0 || request.Nlist <= 0 || request.Nprobe <= 0 || request.M <= 0 || request.CodebookSize <= 0 {
+		c.JSON(400, gin.H{"error": "dimension, nlist, nprobe, m, and codebook_size must be greater than 0"})
+		return
+	}
+
+	if request.Dimension%request.M != 0 {
+		c.JSON(400, gin.H{"error": "dimension must be divisible by m"})
+		return
+	}
+
+	timeNs, err := lynx.EstimateIVFPQTrainingTimeNs(
+		request.Dimension,
+		request.Nlist,
+		request.Nprobe,
+		request.M,
+		request.CodebookSize,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, EstimateTrainingTimeResponse{EstimatedTimeNs: timeNs})
+}
+
+func (api *API) estimateHNSWTrainingTime(c *gin.Context) {
+	var request EstimateHNSWTrainingTimeRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if request.Dimension <= 0 || request.M <= 0 || request.EfConstruction <= 0 || request.EfSearch <= 0 {
+		c.JSON(400, gin.H{"error": "dimension, m, ef_construction, and ef_search must be greater than 0"})
+		return
+	}
+
+	timeNs, err := lynx.EstimateHNSWTrainingTimeNs(
+		request.Dimension,
+		request.M,
+		request.EfConstruction,
+		request.EfSearch,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(200, EstimateTrainingTimeResponse{EstimatedTimeNs: timeNs})
+}
+
 func (api *API) getIndexStatus(c *gin.Context) {
 	c.IndentedJSON(200, gin.H{
 		"bf": gin.H{

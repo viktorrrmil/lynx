@@ -130,6 +130,35 @@ type (
 		EfSearch       int64 `json:"ef_search"`
 	}
 
+	EstimateBruteForceTrainingTimeRequest struct {
+		Dimension int64 `json:"dimension"`
+	}
+
+	EstimateIVFTrainingTimeRequest struct {
+		Dimension int64 `json:"dimension"`
+		Nlist     int64 `json:"nlist"`
+		Nprobe    int64 `json:"nprobe"`
+	}
+
+	EstimateIVFPQTrainingTimeRequest struct {
+		Dimension    int64 `json:"dimension"`
+		Nlist        int64 `json:"nlist"`
+		Nprobe       int64 `json:"nprobe"`
+		M            int64 `json:"m"`
+		CodebookSize int64 `json:"codebook_size"`
+	}
+
+	EstimateHNSWTrainingTimeRequest struct {
+		Dimension      int64 `json:"dimension"`
+		M              int64 `json:"m"`
+		EfConstruction int64 `json:"ef_construction"`
+		EfSearch       int64 `json:"ef_search"`
+	}
+
+	EstimateTrainingTimeResponse struct {
+		EstimatedTimeNs int64 `json:"estimated_time_ns"`
+	}
+
 	SemanticGeoIndexRequest struct {
 		S3Path   string  `json:"s3_path"`
 		Region   string  `json:"region"`

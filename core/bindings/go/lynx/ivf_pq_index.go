@@ -171,3 +171,17 @@ func (i *IVFPQIndex) CompressedDim() int64 {
 func (i *IVFPQIndex) SetCompressedDim(compressedDim int64) {
 	C.IVFPQIndex_set_compressed_dim(i.ptr, C.long(compressedDim))
 }
+
+func EstimateIVFPQTrainingTimeNs(dimension int64, nList int64, nProbe int64, m int64, codebookSize int64) (int64, error) {
+	timeNs := int64(C.IVFPQIndex_estimate_training_time_ns(
+		C.long(dimension),
+		C.long(nList),
+		C.long(nProbe),
+		C.long(m),
+		C.long(codebookSize),
+	))
+	if timeNs < 0 {
+		return 0, errors.New("failed to estimate IVF-PQ training time")
+	}
+	return timeNs, nil
+}
