@@ -20,27 +20,38 @@ const InfoScreen = () => {
     }
 
     return (
-        <div className="w-full h-full border border-slate-200 rounded-lg p-6 bg-gradient-to-br from-slate-50 to-blue-50/30">
-            <div className={"flex w-full m-auto align-middle justify-between border-b border-slate-200 pb-2"}>
-                <h2 className={"text-lg text-slate-800"}>Index Info</h2>
+        <div className="w-full h-full cli-panel p-5">
+            <div className="flex w-full m-auto items-center justify-between border-b border-slate-200 pb-2">
+                <div>
+                    <p className="cli-header">Index Snapshot</p>
+                    <p className="text-xs text-slate-500 font-mono mt-1">On-demand metadata refresh</p>
+                </div>
                 <button
-                    className="px-2 py-1 border text-sm rounded bg-white transition-colors"
+                    className="cli-button font-mono"
                     onClick={fetchIndexInfo}
                 >
                     Refresh
                 </button>
             </div>
-            {size > 0 && dimension > 0 && (
-                <div className="index-info pt-3 flex flex-col space-y-2 text-sm text-slate-600">
+            {size > 0 && dimension > 0 ? (
+                <div className="index-info pt-4 flex flex-col space-y-3 text-sm text-slate-600">
                     <div className="flex items-center justify-between">
-                        <span className="text-slate-700">Index Size:</span>
-                        <span className="px-3 py-1 bg-blue-50 rounded border border-blue-200 text-blue-900">{size}</span>
+                        <span className="text-slate-700 font-mono">Index Size</span>
+                        <span className="px-3 py-1 bg-slate-900 text-slate-50 rounded border border-slate-900 text-xs font-mono">
+                            {size}
+                        </span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-slate-700">Vector Dimension:</span>
-                        <span className="px-3 py-1 bg-indigo-50 rounded border border-indigo-200 text-indigo-900">{dimension}</span>
+                        <span className="text-slate-700 font-mono">Vector Dimension</span>
+                        <span className="px-3 py-1 bg-indigo-600 text-white rounded border border-indigo-600 text-xs font-mono">
+                            {dimension}
+                        </span>
                     </div>
                 </div>
+            ) : (
+                <p className="mt-4 text-xs text-slate-500 font-mono">
+                    Refresh to load current index metadata.
+                </p>
             )}
         </div>
     )

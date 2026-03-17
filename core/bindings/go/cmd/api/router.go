@@ -52,6 +52,9 @@ func setupRouter(api *API) *gin.Engine {
 	router.POST("/vector_cache/load", api.loadVectorCache)
 	router.GET("/vector_cache/info", api.getVectorCacheInfo)
 
+	// Dataset ingestion
+	router.POST("/ingestion/evaluate", api.evaluateIngestionFolder)
+
 	// Index status endpoint
 	router.GET("/index_status", api.getIndexStatus)
 	router.GET("/db_status", api.getDatabaseStatus)

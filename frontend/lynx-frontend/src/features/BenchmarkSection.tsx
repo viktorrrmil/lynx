@@ -647,35 +647,35 @@ ${comprehensiveResults.results.map(r =>
     const getSpeedupColor = (speedup: number) => {
         if (speedup >= 5) return 'text-green-600';
         if (speedup >= 2) return 'text-yellow-600';
-        return 'text-gray-600';
+        return 'text-slate-600';
     };
 
     const getIndexColor = (indexName: string) => {
         switch (indexName) {
-            case 'bruteforce': return 'text-gray-700';
+            case 'bruteforce': return 'text-slate-700';
             case 'ivf': return 'text-blue-600';
             case 'ivfpq': return 'text-purple-600';
             case 'hnsw': return 'text-green-600';
-            default: return 'text-gray-600';
+            default: return 'text-slate-600';
         }
     };
 
     const getIndexBgColor = (indexName: string) => {
         switch (indexName) {
-            case 'bruteforce': return 'bg-gray-100 border-gray-300';
+            case 'bruteforce': return 'bg-slate-100 border-slate-300';
             case 'ivf': return 'bg-blue-50 border-blue-200';
             case 'ivfpq': return 'bg-purple-50 border-purple-200';
             case 'hnsw': return 'bg-green-50 border-green-200';
-            default: return 'bg-gray-50 border-gray-200';
+            default: return 'bg-slate-50 border-slate-200';
         }
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 font-mono text-slate-900">
             {/* Query Input Section */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Test Queries</h3>
-                <p className="text-xs text-gray-500 mb-3">
+            <div className="cli-panel p-4">
+                <h3 className="cli-header mb-3">Test Queries</h3>
+                <p className="text-xs text-slate-500 mb-3">
                     Enter comma-separated queries to benchmark IVF index performance against BruteForce.
                 </p>
                 <textarea
@@ -683,33 +683,28 @@ ${comprehensiveResults.results.map(r =>
                     onChange={(e) => setQueries(e.target.value)}
                     placeholder="Enter queries separated by commas..."
                     rows={4}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded
-                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
-                             resize-none"
+                    className="w-full cli-input resize-none"
                 />
                 <div className="flex justify-between items-center mt-3">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-slate-500">
                         {queries.split(',').filter(q => q.trim().length > 0).length} queries
                     </span>
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                            <label className="text-xs text-gray-600">top_k:</label>
+                            <label className="text-xs text-slate-600">top_k:</label>
                             <input
                                 type="number"
                                 min={1}
                                 max={1000}
                                 value={topK}
                                 onChange={(e) => setTopK(Number(e.target.value))}
-                                className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded
-                                         focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                className="w-20 cli-input"
                             />
                         </div>
                         <button
                             onClick={handleRunBenchmark}
                             disabled={loading}
-                            className="px-6 py-2 text-sm font-medium text-white bg-gray-900
-                                     rounded hover:bg-gray-800 disabled:bg-gray-300
-                                     disabled:cursor-not-allowed transition-colors"
+                            className="cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Running Benchmark...' : 'Run Benchmark'}
                         </button>
@@ -719,8 +714,8 @@ ${comprehensiveResults.results.map(r =>
 
             {/* Error Display */}
             {error && (
-                <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-                    <p className="text-sm text-red-700">{error}</p>
+                <div className="cli-panel-muted p-4 border-rose-200 bg-rose-50">
+                    <p className="text-sm text-rose-700">{error}</p>
                 </div>
             )}
 
@@ -728,41 +723,41 @@ ${comprehensiveResults.results.map(r =>
             {summary && (
                 <div className="space-y-4">
                     {/* Summary Stats */}
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="cli-panel-muted p-4">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-medium text-gray-900">Benchmark Summary</h3>
+                            <h3 className="cli-header">Benchmark Summary</h3>
                             <button
                                 onClick={handleCopyStats}
-                                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                className={`cli-button font-mono ${
                                     copied
-                                        ? 'bg-green-600 text-white border-green-600'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                        ? 'bg-emerald-600 text-white border-emerald-600'
+                                        : ''
                                 }`}
                             >
                                 {copied ? 'Copied!' : 'Copy Stats'}
                             </button>
                         </div>
                         <div className="grid grid-cols-4 gap-4">
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Queries Tested</p>
-                                <p className="text-lg font-mono font-medium text-gray-900">
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Queries Tested</p>
+                                <p className="text-lg font-mono font-medium text-slate-900">
                                     {summary.num_queries ?? 0}
                                 </p>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Mean Recall@k</p>
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Mean Recall@k</p>
                                 <p className={`text-lg font-mono font-medium ${getRecallColor(summary.mean_recall ?? 0)}`}>
                                     {((summary.mean_recall ?? 0) * 100).toFixed(2)}%
                                 </p>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Median Recall@k</p>
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Median Recall@k</p>
                                 <p className={`text-lg font-mono font-medium ${getRecallColor(summary.median_recall ?? 0)}`}>
                                     {((summary.median_recall ?? 0) * 100).toFixed(2)}%
                                 </p>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Mean Speedup</p>
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Mean Speedup</p>
                                 <p className={`text-lg font-mono font-medium ${getSpeedupColor(summary.mean_speedup ?? 0)}`}>
                                     {(summary.mean_speedup ?? 0).toFixed(2)}x
                                 </p>
@@ -771,21 +766,21 @@ ${comprehensiveResults.results.map(r =>
 
                         {/* Recall Distribution */}
                         <div className="mt-4 grid grid-cols-3 gap-4">
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Min Recall</p>
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Min Recall</p>
                                 <p className={`text-sm font-mono font-medium ${getRecallColor(summary.min_recall ?? 0)}`}>
                                     {((summary.min_recall ?? 0) * 100).toFixed(2)}%
                                 </p>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Max Recall</p>
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Max Recall</p>
                                 <p className={`text-sm font-mono font-medium ${getRecallColor(summary.max_recall ?? 0)}`}>
                                     {((summary.max_recall ?? 0) * 100).toFixed(2)}%
                                 </p>
                             </div>
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <p className="text-xs text-gray-500 mb-1">Std Dev</p>
-                                <p className="text-sm font-mono font-medium text-gray-600">
+                            <div className="cli-panel-strong p-3">
+                                <p className="text-xs text-slate-500 mb-1">Std Dev</p>
+                                <p className="text-sm font-mono font-medium text-slate-600">
                                     ±{((summary.stddev_recall ?? 0) * 100).toFixed(2)}%
                                 </p>
                             </div>
@@ -793,35 +788,35 @@ ${comprehensiveResults.results.map(r =>
                     </div>
 
                     {/* Individual Results */}
-                    <div className="border border-gray-200 rounded-lg bg-white">
+                    <div className="cli-panel-strong">
                         <div
-                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
                             onClick={() => setShowAllResults(!showAllResults)}
                         >
-                            <h3 className="text-sm font-medium text-gray-900">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-[0.2em]">
                                 Individual Results ({summary.results?.length})
                             </h3>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-slate-500">
                                 {showAllResults ? '▲ Hide' : '▼ Show'}
                             </span>
                         </div>
 
                         {showAllResults && (
-                            <div className="border-t border-gray-200">
+                            <div className="border-t border-slate-200">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-slate-50">
                                     <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Query</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Recall@k</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Speedup</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">BF Time</th>
-                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">IVF Time</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Query</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Recall@k</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">Speedup</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">BF Time</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase">IVF Time</th>
                                     </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-slate-200">
                                     {summary.results?.map((result, index) => (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            <td className="px-4 py-2 text-gray-900 max-w-xs truncate" title={result.query}>
+                                        <tr key={index} className="hover:bg-slate-50">
+                                            <td className="px-4 py-2 text-slate-900 max-w-xs truncate" title={result.query}>
                                                 {result.query}
                                             </td>
                                             <td className={`px-4 py-2 text-right font-mono ${getRecallColor(result.recall_at_k ?? 0)}`}>
@@ -830,10 +825,10 @@ ${comprehensiveResults.results.map(r =>
                                             <td className={`px-4 py-2 text-right font-mono ${getSpeedupColor(result.speedup_x ?? 0)}`}>
                                                 {(result.speedup_x ?? 0).toFixed(2)}x
                                             </td>
-                                            <td className="px-4 py-2 text-right font-mono text-gray-600">
+                                            <td className="px-4 py-2 text-right font-mono text-slate-600">
                                                 {(result.bf_time_ms ?? 0).toFixed(2)}ms
                                             </td>
-                                            <td className="px-4 py-2 text-right font-mono text-gray-600">
+                                            <td className="px-4 py-2 text-right font-mono text-slate-600">
                                                 {(result.ivf_time_ms ?? 0).toFixed(2)}ms
                                             </td>
                                         </tr>
@@ -845,8 +840,8 @@ ${comprehensiveResults.results.map(r =>
                     </div>
 
                     {/* Visual Recall Bar */}
-                    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3">Recall Distribution</h3>
+                    <div className="cli-panel p-4">
+                        <h3 className="cli-header mb-3">Recall Distribution</h3>
                         <div className="space-y-2">
                             {summary.results?.map((result, index) => {
                                 const value = result.recall_at_k ?? 0;
@@ -855,10 +850,10 @@ ${comprehensiveResults.results.map(r =>
 
                                 return (
                                     <div key={index} className="flex items-center gap-2 sm:gap-3">
-                                        <span className="text-xs text-gray-500 w-20 sm:w-28 md:w-32 truncate flex-shrink-0" title={result.query}>
+                                        <span className="text-xs text-slate-500 w-20 sm:w-28 md:w-32 truncate flex-shrink-0" title={result.query}>
                                             {result.query}
                                         </span>
-                                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden min-w-0">
+                                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden min-w-0">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                                                 style={{ width: `${value * 100}%` }}
@@ -876,28 +871,28 @@ ${comprehensiveResults.results.map(r =>
             )}
 
             {/* IVF Parameter Tuning Section */}
-            <div className="border border-gray-200 rounded-lg bg-white">
+            <div className="cli-panel-strong">
                 <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => setShowIVFParamSweep(!showIVFParamSweep)}
                 >
                     <div>
-                        <h3 className="text-sm font-medium text-gray-900">IVF Parameter Tuning</h3>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <h3 className="cli-header">IVF Parameter Tuning</h3>
+                        <p className="text-xs text-slate-500 mt-1">
                             Find optimal nlist and nprobe combinations for your dataset
                         </p>
                     </div>
-                    <span className="text-gray-400">
+                    <span className="text-slate-400">
                         {showIVFParamSweep ? '▲' : '▼'}
                     </span>
                 </div>
 
                 {showIVFParamSweep && (
-                    <div className="border-t border-gray-200 p-4 space-y-4">
+                    <div className="border-t border-slate-200 p-4 space-y-4">
                         {/* Parameter Inputs */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-slate-700 mb-1">
                                     nlist values (comma-separated)
                                 </label>
                                 <input
@@ -905,12 +900,11 @@ ${comprehensiveResults.results.map(r =>
                                     value={ivfNlistValues}
                                     onChange={(e) => setIvfNlistValues(e.target.value)}
                                     placeholder="4, 8, 16, 32, 64"
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    className="w-full cli-input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-slate-700 mb-1">
                                     nprobe values (comma-separated)
                                 </label>
                                 <input
@@ -918,14 +912,13 @@ ${comprehensiveResults.results.map(r =>
                                     value={ivfNprobeValues}
                                     onChange={(e) => setIvfNprobeValues(e.target.value)}
                                     placeholder="1, 2, 4, 8, 16"
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    className="w-full cli-input"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-slate-700 mb-1">
                                 Test queries (comma-separated)
                             </label>
                             <input
@@ -933,8 +926,7 @@ ${comprehensiveResults.results.map(r =>
                                 value={ivfSweepQueries}
                                 onChange={(e) => setIvfSweepQueries(e.target.value)}
                                 placeholder="tree, ocean, science..."
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded
-                                         focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                className="w-full cli-input"
                             />
                         </div>
 
@@ -973,23 +965,20 @@ ${comprehensiveResults.results.map(r =>
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-600">top_k:</label>
+                                <label className="text-xs text-slate-600">top_k:</label>
                                 <input
                                     type="number"
                                     min={1}
                                     max={1000}
                                     value={ivfSweepTopK}
                                     onChange={(e) => setIvfSweepTopK(Number(e.target.value))}
-                                    className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    className="w-20 cli-input"
                                 />
                             </div>
                             <button
                                 onClick={handleRunIvfParamSweep}
                                 disabled={ivfSweepLoading}
-                                className="px-6 py-2 text-sm font-medium text-white bg-gray-900
-                                         rounded hover:bg-gray-800 disabled:bg-gray-300
-                                         disabled:cursor-not-allowed transition-colors"
+                                className="cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                             >
                                 {ivfSweepLoading ? 'Running Sweep...' : 'Run Parameter Sweep'}
                             </button>
@@ -997,8 +986,8 @@ ${comprehensiveResults.results.map(r =>
 
                         {/* Sweep Error */}
                         {ivfSweepError && (
-                            <div className="border border-red-200 rounded-lg p-3 bg-red-50">
-                                <p className="text-sm text-red-700">{ivfSweepError}</p>
+                            <div className="cli-panel-muted p-3 border-rose-200 bg-rose-50">
+                                <p className="text-sm text-rose-700">{ivfSweepError}</p>
                             </div>
                         )}
 
@@ -1009,10 +998,10 @@ ${comprehensiveResults.results.map(r =>
                                 <div className="flex justify-end">
                                     <button
                                         onClick={handleCopyIvfSweepResults}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`cli-button font-mono ${
                                             ivfSweepCopied
-                                                ? 'bg-green-600 text-white border-green-600'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                                : ''
                                         }`}
                                     >
                                         {ivfSweepCopied ? 'Copied!' : 'Copy All Results'}
@@ -1022,46 +1011,46 @@ ${comprehensiveResults.results.map(r =>
                                 {/* Optimal Configurations Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {ivfSweepResults.best_recall && (
-                                        <div className="border rounded-lg p-3">
+                                        <div className="cli-panel-strong p-3">
                                             <h4 className="text-sm text-green-800 mb-2">Best Recall</h4>
                                             <div className="grid grid-cols-4 gap-2 text-sm">
-                                                <div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfSweepResults.best_recall.nlist}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_recall.nprobe}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-green-600">{((ivfSweepResults.best_recall.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Latency</p><p className="font-mono text-gray-600">{(ivfSweepResults.best_recall.mean_latency_ms ?? 0).toFixed(2)}ms</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfSweepResults.best_recall.nlist}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_recall.nprobe}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-green-600">{((ivfSweepResults.best_recall.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Latency</p><p className="font-mono text-slate-600">{(ivfSweepResults.best_recall.mean_latency_ms ?? 0).toFixed(2)}ms</p></div>
                                             </div>
                                         </div>
                                     )}
                                     {ivfSweepResults.best_speedup && (
-                                        <div className="border rounded-lg p-3">
+                                        <div className="cli-panel-strong p-3">
                                             <h4 className="text-sm text-blue-800 mb-2">Best Speedup</h4>
                                             <div className="grid grid-cols-4 gap-2 text-sm">
-                                                <div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfSweepResults.best_speedup.nlist}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_speedup.nprobe}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Speedup</p><p className="font-mono text-blue-600">{(ivfSweepResults.best_speedup.speedup ?? 0).toFixed(2)}x</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-gray-600">{((ivfSweepResults.best_speedup.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfSweepResults.best_speedup.nlist}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_speedup.nprobe}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Speedup</p><p className="font-mono text-blue-600">{(ivfSweepResults.best_speedup.speedup ?? 0).toFixed(2)}x</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-slate-600">{((ivfSweepResults.best_speedup.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
                                             </div>
                                         </div>
                                     )}
                                     {ivfSweepResults.best_latency && (
-                                        <div className="border rounded-lg p-3">
+                                        <div className="cli-panel-strong p-3">
                                             <h4 className="text-sm text-amber-800 mb-2">Best Latency</h4>
                                             <div className="grid grid-cols-4 gap-2 text-sm">
-                                                <div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfSweepResults.best_latency.nlist}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_latency.nprobe}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Latency</p><p className="font-mono text-amber-600">{(ivfSweepResults.best_latency.mean_latency_ms ?? 0).toFixed(2)}ms</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-gray-600">{((ivfSweepResults.best_latency.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfSweepResults.best_latency.nlist}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_latency.nprobe}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Latency</p><p className="font-mono text-amber-600">{(ivfSweepResults.best_latency.mean_latency_ms ?? 0).toFixed(2)}ms</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-slate-600">{((ivfSweepResults.best_latency.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
                                             </div>
                                         </div>
                                     )}
                                     {ivfSweepResults.best_balanced && (
-                                        <div className="border rounded-lg p-3">
+                                        <div className="cli-panel-strong p-3">
                                             <h4 className="text-sm text-purple-800 mb-2">Best Balanced</h4>
                                             <div className="grid grid-cols-4 gap-2 text-sm">
-                                                <div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfSweepResults.best_balanced.nlist}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_balanced.nprobe}</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-purple-600">{((ivfSweepResults.best_balanced.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
-                                                <div><p className="text-[10px] text-gray-500">Speedup</p><p className="font-mono text-gray-600">{(ivfSweepResults.best_balanced.speedup ?? 0).toFixed(2)}x</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfSweepResults.best_balanced.nlist}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfSweepResults.best_balanced.nprobe}</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-purple-600">{((ivfSweepResults.best_balanced.mean_recall ?? 0) * 100).toFixed(1)}%</p></div>
+                                                <div><p className="text-[10px] text-slate-500">Speedup</p><p className="font-mono text-slate-600">{(ivfSweepResults.best_balanced.speedup ?? 0).toFixed(2)}x</p></div>
                                             </div>
                                         </div>
                                     )}
@@ -1069,8 +1058,8 @@ ${comprehensiveResults.results.map(r =>
 
                                 {/* Chart */}
                                 {getIvfChartData() && (
-                                    <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm">
-                                        <h4 className="text-sm font-medium text-gray-900 mb-4">Recall vs Latency Trade-off</h4>
+                                    <div className="cli-panel-strong p-5">
+                                        <h4 className="cli-header mb-4">Recall vs Latency Trade-off</h4>
                                         <svg viewBox="0 0 420 280" className="w-full h-72">
                                             <rect x="50" y="20" width="350" height="220" fill="#fafafa" rx="4"/>
                                             {[0, 25, 50, 75, 100].map((pct, i) => {
@@ -1110,35 +1099,35 @@ ${comprehensiveResults.results.map(r =>
                                             <line x1="50" y1="230" x2="400" y2="230" stroke="#374151" strokeWidth="1.5"/>
                                             <line x1="50" y1="30" x2="50" y2="230" stroke="#374151" strokeWidth="1.5"/>
                                         </svg>
-                                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-3 pt-3 border-t border-gray-100">
-                                            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"/><span className="text-xs text-gray-500">Other</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Recall</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Speedup</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-amber-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Latency</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Balanced</span></div>
+                                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-3 pt-3 border-t border-slate-100">
+                                            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"/><span className="text-xs text-slate-500">Other</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Recall</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Speedup</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-amber-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Latency</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Balanced</span></div>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Results Table */}
-                                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-                                    <div className="p-3 bg-gray-50 border-b border-gray-200"><h4 className="text-sm font-medium text-gray-900">All Results</h4></div>
+                                <div className="cli-panel-strong overflow-hidden">
+                                    <div className="p-3 bg-slate-50 border-b border-slate-200"><h4 className="cli-header">All Results</h4></div>
                                     <div className="max-h-64 overflow-y-auto">
                                         <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">nlist</th><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">nprobe</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Recall</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Latency</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Speedup</th><th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Type</th></tr></thead>
-                                            <tbody className="divide-y divide-gray-200">
+                                            <thead className="bg-slate-50 sticky top-0"><tr><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">nlist</th><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">nprobe</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Recall</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Latency</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Speedup</th><th className="px-3 py-2 text-center text-xs font-medium text-slate-500 uppercase">Type</th></tr></thead>
+                                            <tbody className="divide-y divide-slate-200">
                                             {ivfSweepResults.results?.map((result: IVFParamResult, idx: number) => {
                                                 const isMatch = (opt: IVFParamResult | undefined) => opt && result.nlist === opt.nlist && result.nprobe === opt.nprobe;
                                                 const isBestRecall = isMatch(ivfSweepResults.best_recall);
                                                 const isBestSpeedup = isMatch(ivfSweepResults.best_speedup);
                                                 const isBestLatency = isMatch(ivfSweepResults.best_latency);
                                                 const isBestBalanced = isMatch(ivfSweepResults.best_balanced);
-                                                let rowBg = 'hover:bg-gray-50'; let badge = null;
+                                                let rowBg = 'hover:bg-slate-50'; let badge = null;
                                                 if (isBestRecall) { rowBg = 'bg-green-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">Recall</span>; }
                                                 else if (isBestSpeedup) { rowBg = 'bg-blue-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">Speedup</span>; }
                                                 else if (isBestLatency) { rowBg = 'bg-amber-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">Latency</span>; }
                                                 else if (isBestBalanced) { rowBg = 'bg-purple-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">Balanced</span>; }
-                                                return (<tr key={idx} className={rowBg}><td className="px-3 py-2 font-mono text-gray-900">{result.nlist}</td><td className="px-3 py-2 font-mono text-gray-900">{result.nprobe}</td><td className={`px-3 py-2 text-right font-mono ${getRecallColor(result.mean_recall ?? 0)}`}>{((result.mean_recall ?? 0) * 100).toFixed(2)}%</td><td className="px-3 py-2 text-right font-mono text-gray-600">{(result.mean_latency_ms ?? 0).toFixed(2)}ms</td><td className={`px-3 py-2 text-right font-mono ${getSpeedupColor(result.speedup ?? 0)}`}>{(result.speedup ?? 0).toFixed(2)}x</td><td className="px-3 py-2 text-center">{badge}</td></tr>);
+                                                return (<tr key={idx} className={rowBg}><td className="px-3 py-2 font-mono text-slate-900">{result.nlist}</td><td className="px-3 py-2 font-mono text-slate-900">{result.nprobe}</td><td className={`px-3 py-2 text-right font-mono ${getRecallColor(result.mean_recall ?? 0)}`}>{((result.mean_recall ?? 0) * 100).toFixed(2)}%</td><td className="px-3 py-2 text-right font-mono text-slate-600">{(result.mean_latency_ms ?? 0).toFixed(2)}ms</td><td className={`px-3 py-2 text-right font-mono ${getSpeedupColor(result.speedup ?? 0)}`}>{(result.speedup ?? 0).toFixed(2)}x</td><td className="px-3 py-2 text-center">{badge}</td></tr>);
                                             })}
                                             </tbody>
                                         </table>
@@ -1151,33 +1140,33 @@ ${comprehensiveResults.results.map(r =>
             </div>
 
             {/* IVF-PQ Parameter Tuning Section */}
-            <div className="border border-gray-200 rounded-lg bg-white">
+            <div className="cli-panel-strong">
                 <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => setShowIVFPQParamSweep(!showIVFPQParamSweep)}
                 >
                     <div>
-                        <h3 className="text-sm font-medium text-gray-900">IVF-PQ Parameter Tuning</h3>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <h3 className="cli-header">IVF-PQ Parameter Tuning</h3>
+                        <p className="text-xs text-slate-500 mt-1">
                             Find optimal nlist, nprobe, M, and codebook size combinations for your dataset
                         </p>
                     </div>
-                    <span className="text-gray-400">
+                    <span className="text-slate-400">
                         {showIVFPQParamSweep ? '▲' : '▼'}
                     </span>
                 </div>
 
                 {showIVFPQParamSweep && (
-                    <div className="border-t border-gray-200 p-4 space-y-4">
+                    <div className="border-t border-slate-200 p-4 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-medium text-gray-700 mb-1">nlist values (comma-separated)</label><input type="text" value={ivfPqNlistValues} onChange={(e) => setIvfPqNlistValues(e.target.value)} placeholder="4, 8, 16, 32" className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"/></div>
-                            <div><label className="block text-xs font-medium text-gray-700 mb-1">nprobe values (comma-separated)</label><input type="text" value={ivfPqNprobeValues} onChange={(e) => setIvfPqNprobeValues(e.target.value)} placeholder="1, 2, 4, 8" className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"/></div>
+                            <div><label className="block text-xs font-medium text-slate-700 mb-1">nlist values (comma-separated)</label><input type="text" value={ivfPqNlistValues} onChange={(e) => setIvfPqNlistValues(e.target.value)} placeholder="4, 8, 16, 32" className="w-full cli-input"/></div>
+                            <div><label className="block text-xs font-medium text-slate-700 mb-1">nprobe values (comma-separated)</label><input type="text" value={ivfPqNprobeValues} onChange={(e) => setIvfPqNprobeValues(e.target.value)} placeholder="1, 2, 4, 8" className="w-full cli-input"/></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-medium text-gray-700 mb-1">M values (comma-separated)</label><input type="text" value={ivfPqMValues} onChange={(e) => setIvfPqMValues(e.target.value)} placeholder="8, 16, 32" className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"/></div>
-                            <div><label className="block text-xs font-medium text-gray-700 mb-1">Codebook size values (comma-separated)</label><input type="text" value={ivfPqCodebookValues} onChange={(e) => setIvfPqCodebookValues(e.target.value)} placeholder="256, 512" className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"/></div>
+                            <div><label className="block text-xs font-medium text-slate-700 mb-1">M values (comma-separated)</label><input type="text" value={ivfPqMValues} onChange={(e) => setIvfPqMValues(e.target.value)} placeholder="8, 16, 32" className="w-full cli-input"/></div>
+                            <div><label className="block text-xs font-medium text-slate-700 mb-1">Codebook size values (comma-separated)</label><input type="text" value={ivfPqCodebookValues} onChange={(e) => setIvfPqCodebookValues(e.target.value)} placeholder="256, 512" className="w-full cli-input"/></div>
                         </div>
-                        <div><label className="block text-xs font-medium text-gray-700 mb-1">Test queries (comma-separated)</label><input type="text" value={ivfPqSweepQueries} onChange={(e) => setIvfPqSweepQueries(e.target.value)} placeholder="tree, ocean, science..." className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"/></div>
+                        <div><label className="block text-xs font-medium text-slate-700 mb-1">Test queries (comma-separated)</label><input type="text" value={ivfPqSweepQueries} onChange={(e) => setIvfPqSweepQueries(e.target.value)} placeholder="tree, ocean, science..." className="w-full cli-input"/></div>
 
                         {/* Time Estimate for IVFPQ */}
                         {/*{ivfPqTimeEstimate && (*/}
@@ -1263,40 +1252,48 @@ ${comprehensiveResults.results.map(r =>
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-600">top_k:</label>
+                                <label className="text-xs text-slate-600">top_k:</label>
                                 <input
                                     type="number"
                                     min={1}
                                     max={1000}
                                     value={ivfPqSweepTopK}
                                     onChange={(e) => setIvfPqSweepTopK(Number(e.target.value))}
-                                    className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    className="w-20 cli-input"
                                 />
                             </div>
                             <button
                                 onClick={handleRunIvfPqParamSweep}
                                 disabled={ivfPqSweepLoading}
-                                className="px-6 py-2 text-sm font-medium text-white bg-gray-900
-                                         rounded hover:bg-gray-800 disabled:bg-gray-300
-                                         disabled:cursor-not-allowed transition-colors"
+                                className="cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                             >
                                 {ivfPqSweepLoading ? 'Running Sweep...' : 'Run Parameter Sweep'}
                             </button>
                         </div>
-                        {ivfPqSweepError && (<div className="border border-red-200 rounded-lg p-3 bg-red-50"><p className="text-sm text-red-700">{ivfPqSweepError}</p></div>)}
+                        {ivfPqSweepError && (
+                            <div className="cli-panel-muted p-3 border-rose-200 bg-rose-50">
+                                <p className="text-sm text-rose-700">{ivfPqSweepError}</p>
+                            </div>
+                        )}
                         {ivfPqSweepResults && (
                             <div className="space-y-4">
-                                <div className="flex justify-end"><button onClick={handleCopyIvfPqSweepResults} className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${ivfPqSweepCopied ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>{ivfPqSweepCopied ? 'Copied!' : 'Copy All Results'}</button></div>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleCopyIvfPqSweepResults}
+                                        className={`cli-button font-mono ${ivfPqSweepCopied ? 'bg-emerald-600 text-white border-emerald-600' : ''}`}
+                                    >
+                                        {ivfPqSweepCopied ? 'Copied!' : 'Copy All Results'}
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {ivfPqSweepResults.best_recall && (<div className="border rounded-lg p-3"><h4 className="text-sm text-green-800 mb-2">Best Recall</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_recall.nlist}</p></div><div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_recall.nprobe}</p></div><div><p className="text-[10px] text-gray-500">M</p><p className="font-mono">{ivfPqSweepResults.best_recall.m}</p></div><div><p className="text-[10px] text-gray-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_recall.codebook_size}</p></div><div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-green-600">{((ivfPqSweepResults.best_recall.mean_recall ?? 0) * 100).toFixed(1)}%</p></div><div><p className="text-[10px] text-gray-500">Latency</p><p className="font-mono text-gray-600">{(ivfPqSweepResults.best_recall.mean_latency_ms ?? 0).toFixed(2)}ms</p></div></div></div>)}
-                                    {ivfPqSweepResults.best_speedup && (<div className="border rounded-lg p-3"><h4 className="text-sm text-blue-800 mb-2">Best Speedup</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_speedup.nlist}</p></div><div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_speedup.nprobe}</p></div><div><p className="text-[10px] text-gray-500">M</p><p className="font-mono">{ivfPqSweepResults.best_speedup.m}</p></div><div><p className="text-[10px] text-gray-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_speedup.codebook_size}</p></div><div><p className="text-[10px] text-gray-500">Speedup</p><p className="font-mono text-blue-600">{(ivfPqSweepResults.best_speedup.speedup ?? 0).toFixed(2)}x</p></div><div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-gray-600">{((ivfPqSweepResults.best_speedup.mean_recall ?? 0) * 100).toFixed(1)}%</p></div></div></div>)}
-                                    {ivfPqSweepResults.best_latency && (<div className="border rounded-lg p-3"><h4 className="text-sm text-amber-800 mb-2">Best Latency</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_latency.nlist}</p></div><div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_latency.nprobe}</p></div><div><p className="text-[10px] text-gray-500">M</p><p className="font-mono">{ivfPqSweepResults.best_latency.m}</p></div><div><p className="text-[10px] text-gray-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_latency.codebook_size}</p></div><div><p className="text-[10px] text-gray-500">Latency</p><p className="font-mono text-amber-600">{(ivfPqSweepResults.best_latency.mean_latency_ms ?? 0).toFixed(2)}ms</p></div><div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-gray-600">{((ivfPqSweepResults.best_latency.mean_recall ?? 0) * 100).toFixed(1)}%</p></div></div></div>)}
-                                    {ivfPqSweepResults.best_balanced && (<div className="border rounded-lg p-3"><h4 className="text-sm text-purple-800 mb-2">Best Balanced</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-gray-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_balanced.nlist}</p></div><div><p className="text-[10px] text-gray-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_balanced.nprobe}</p></div><div><p className="text-[10px] text-gray-500">M</p><p className="font-mono">{ivfPqSweepResults.best_balanced.m}</p></div><div><p className="text-[10px] text-gray-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_balanced.codebook_size}</p></div><div><p className="text-[10px] text-gray-500">Recall</p><p className="font-mono text-purple-600">{((ivfPqSweepResults.best_balanced.mean_recall ?? 0) * 100).toFixed(1)}%</p></div><div><p className="text-[10px] text-gray-500">Speedup</p><p className="font-mono text-gray-600">{(ivfPqSweepResults.best_balanced.speedup ?? 0).toFixed(2)}x</p></div></div></div>)}
+                                    {ivfPqSweepResults.best_recall && (<div className="cli-panel-strong p-3"><h4 className="text-sm text-green-800 mb-2">Best Recall</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_recall.nlist}</p></div><div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_recall.nprobe}</p></div><div><p className="text-[10px] text-slate-500">M</p><p className="font-mono">{ivfPqSweepResults.best_recall.m}</p></div><div><p className="text-[10px] text-slate-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_recall.codebook_size}</p></div><div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-green-600">{((ivfPqSweepResults.best_recall.mean_recall ?? 0) * 100).toFixed(1)}%</p></div><div><p className="text-[10px] text-slate-500">Latency</p><p className="font-mono text-slate-600">{(ivfPqSweepResults.best_recall.mean_latency_ms ?? 0).toFixed(2)}ms</p></div></div></div>)}
+                                    {ivfPqSweepResults.best_speedup && (<div className="cli-panel-strong p-3"><h4 className="text-sm text-blue-800 mb-2">Best Speedup</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_speedup.nlist}</p></div><div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_speedup.nprobe}</p></div><div><p className="text-[10px] text-slate-500">M</p><p className="font-mono">{ivfPqSweepResults.best_speedup.m}</p></div><div><p className="text-[10px] text-slate-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_speedup.codebook_size}</p></div><div><p className="text-[10px] text-slate-500">Speedup</p><p className="font-mono text-blue-600">{(ivfPqSweepResults.best_speedup.speedup ?? 0).toFixed(2)}x</p></div><div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-slate-600">{((ivfPqSweepResults.best_speedup.mean_recall ?? 0) * 100).toFixed(1)}%</p></div></div></div>)}
+                                    {ivfPqSweepResults.best_latency && (<div className="cli-panel-strong p-3"><h4 className="text-sm text-amber-800 mb-2">Best Latency</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_latency.nlist}</p></div><div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_latency.nprobe}</p></div><div><p className="text-[10px] text-slate-500">M</p><p className="font-mono">{ivfPqSweepResults.best_latency.m}</p></div><div><p className="text-[10px] text-slate-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_latency.codebook_size}</p></div><div><p className="text-[10px] text-slate-500">Latency</p><p className="font-mono text-amber-600">{(ivfPqSweepResults.best_latency.mean_latency_ms ?? 0).toFixed(2)}ms</p></div><div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-slate-600">{((ivfPqSweepResults.best_latency.mean_recall ?? 0) * 100).toFixed(1)}%</p></div></div></div>)}
+                                    {ivfPqSweepResults.best_balanced && (<div className="cli-panel-strong p-3"><h4 className="text-sm text-purple-800 mb-2">Best Balanced</h4><div className="grid grid-cols-3 gap-2 text-sm"><div><p className="text-[10px] text-slate-500">nlist</p><p className="font-mono">{ivfPqSweepResults.best_balanced.nlist}</p></div><div><p className="text-[10px] text-slate-500">nprobe</p><p className="font-mono">{ivfPqSweepResults.best_balanced.nprobe}</p></div><div><p className="text-[10px] text-slate-500">M</p><p className="font-mono">{ivfPqSweepResults.best_balanced.m}</p></div><div><p className="text-[10px] text-slate-500">Codebook</p><p className="font-mono">{ivfPqSweepResults.best_balanced.codebook_size}</p></div><div><p className="text-[10px] text-slate-500">Recall</p><p className="font-mono text-purple-600">{((ivfPqSweepResults.best_balanced.mean_recall ?? 0) * 100).toFixed(1)}%</p></div><div><p className="text-[10px] text-slate-500">Speedup</p><p className="font-mono text-slate-600">{(ivfPqSweepResults.best_balanced.speedup ?? 0).toFixed(2)}x</p></div></div></div>)}
                                 </div>
                                 {getIvfPqChartData() && (
-                                    <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm">
-                                        <h4 className="text-sm font-medium text-gray-900 mb-4">Recall vs Latency Trade-off</h4>
+                                    <div className="cli-panel-strong p-5">
+                                        <h4 className="cli-header mb-4">Recall vs Latency Trade-off</h4>
                                         <svg viewBox="0 0 420 280" className="w-full h-72">
                                             <rect x="50" y="20" width="350" height="220" fill="#fafafa" rx="4"/>
                                             {[0, 25, 50, 75, 100].map((pct, i) => { const chartData = getIvfPqChartData()!; const y = 230 - (pct / 100) * 200; const recallValue = chartData.minRecall + (pct / 100) * (chartData.maxRecall - chartData.minRecall); return (<g key={`h-${i}`}><line x1="50" y1={y} x2="400" y2={y} stroke="#e5e7eb" strokeWidth="1" strokeDasharray={pct === 0 ? "0" : "4,4"}/><text x="45" y={y + 4} textAnchor="end" fill="#9ca3af" fontSize="10" fontFamily="monospace">{(recallValue * 100).toFixed(0)}%</text></g>); })}
@@ -1326,33 +1323,33 @@ ${comprehensiveResults.results.map(r =>
                                             <line x1="50" y1="230" x2="400" y2="230" stroke="#374151" strokeWidth="1.5"/>
                                             <line x1="50" y1="30" x2="50" y2="230" stroke="#374151" strokeWidth="1.5"/>
                                         </svg>
-                                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-3 pt-3 border-t border-gray-100">
-                                            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"/><span className="text-xs text-gray-500">Other</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Recall</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Speedup</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-amber-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Latency</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"/><span className="text-xs text-gray-600 font-medium">Best Balanced</span></div>
+                                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-3 pt-3 border-t border-slate-100">
+                                            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"/><span className="text-xs text-slate-500">Other</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Recall</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Speedup</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-amber-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Latency</span></div>
+                                            <div className="flex items-center gap-1.5"><div className="w-3.5 h-3.5 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"/><span className="text-xs text-slate-600 font-medium">Best Balanced</span></div>
                                         </div>
                                     </div>
                                 )}
-                                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-                                    <div className="p-3 bg-gray-50 border-b border-gray-200"><h4 className="text-sm font-medium text-gray-900">All Results</h4></div>
+                                <div className="cli-panel-strong overflow-hidden">
+                                    <div className="p-3 bg-slate-50 border-b border-slate-200"><h4 className="text-sm font-medium text-slate-900">All Results</h4></div>
                                     <div className="max-h-64 overflow-y-auto">
                                         <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 sticky top-0"><tr><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">nlist</th><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">nprobe</th><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">M</th><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Codebook</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Recall</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Latency</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Speedup</th><th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Type</th></tr></thead>
-                                            <tbody className="divide-y divide-gray-200">
+                                            <thead className="bg-slate-50 sticky top-0"><tr><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">nlist</th><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">nprobe</th><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">M</th><th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">Codebook</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Recall</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Latency</th><th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">Speedup</th><th className="px-3 py-2 text-center text-xs font-medium text-slate-500 uppercase">Type</th></tr></thead>
+                                            <tbody className="divide-y divide-slate-200">
                                             {ivfPqSweepResults.results?.map((result: IVFPQParamResult, idx: number) => {
                                                 const isMatch = (opt: IVFPQParamResult | undefined) => opt && result.nlist === opt.nlist && result.nprobe === opt.nprobe && result.m === opt.m && result.codebook_size === opt.codebook_size;
                                                 const isBestRecall = isMatch(ivfPqSweepResults.best_recall);
                                                 const isBestSpeedup = isMatch(ivfPqSweepResults.best_speedup);
                                                 const isBestLatency = isMatch(ivfPqSweepResults.best_latency);
                                                 const isBestBalanced = isMatch(ivfPqSweepResults.best_balanced);
-                                                let rowBg = 'hover:bg-gray-50'; let badge = null;
+                                                let rowBg = 'hover:bg-slate-50'; let badge = null;
                                                 if (isBestRecall) { rowBg = 'bg-green-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">Recall</span>; }
                                                 else if (isBestSpeedup) { rowBg = 'bg-blue-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">Speedup</span>; }
                                                 else if (isBestLatency) { rowBg = 'bg-amber-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">Latency</span>; }
                                                 else if (isBestBalanced) { rowBg = 'bg-purple-50'; badge = <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded">Balanced</span>; }
-                                                return (<tr key={idx} className={rowBg}><td className="px-3 py-2 font-mono text-gray-900">{result.nlist}</td><td className="px-3 py-2 font-mono text-gray-900">{result.nprobe}</td><td className="px-3 py-2 font-mono text-gray-900">{result.m}</td><td className="px-3 py-2 font-mono text-gray-900">{result.codebook_size}</td><td className={`px-3 py-2 text-right font-mono ${getRecallColor(result.mean_recall ?? 0)}`}>{((result.mean_recall ?? 0) * 100).toFixed(2)}%</td><td className="px-3 py-2 text-right font-mono text-gray-600">{(result.mean_latency_ms ?? 0).toFixed(2)}ms</td><td className={`px-3 py-2 text-right font-mono ${getSpeedupColor(result.speedup ?? 0)}`}>{(result.speedup ?? 0).toFixed(2)}x</td><td className="px-3 py-2 text-center">{badge}</td></tr>);
+                                                return (<tr key={idx} className={rowBg}><td className="px-3 py-2 font-mono text-slate-900">{result.nlist}</td><td className="px-3 py-2 font-mono text-slate-900">{result.nprobe}</td><td className="px-3 py-2 font-mono text-slate-900">{result.m}</td><td className="px-3 py-2 font-mono text-slate-900">{result.codebook_size}</td><td className={`px-3 py-2 text-right font-mono ${getRecallColor(result.mean_recall ?? 0)}`}>{((result.mean_recall ?? 0) * 100).toFixed(2)}%</td><td className="px-3 py-2 text-right font-mono text-slate-600">{(result.mean_latency_ms ?? 0).toFixed(2)}ms</td><td className={`px-3 py-2 text-right font-mono ${getSpeedupColor(result.speedup ?? 0)}`}>{(result.speedup ?? 0).toFixed(2)}x</td><td className="px-3 py-2 text-center">{badge}</td></tr>);
                                             })}
                                             </tbody>
                                         </table>
@@ -1365,27 +1362,27 @@ ${comprehensiveResults.results.map(r =>
             </div>
 
             {/* Comprehensive Benchmark Section */}
-            <div className="border border-gray-200 rounded-lg bg-white">
+            <div className="cli-panel-strong">
                 <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
                     onClick={() => setShowComprehensiveBenchmark(!showComprehensiveBenchmark)}
                 >
                     <div>
-                        <h3 className="text-sm font-medium text-gray-900">Comprehensive Index Benchmark</h3>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <h3 className="cli-header">Comprehensive Index Benchmark</h3>
+                        <p className="text-xs text-slate-500 mt-1">
                             Compare all index types (BruteForce, IVF, IVF-PQ, HNSW) side by side
                         </p>
                     </div>
-                    <span className="text-gray-400">
+                    <span className="text-slate-400">
                         {showComprehensiveBenchmark ? '▲' : '▼'}
                     </span>
                 </div>
 
                 {showComprehensiveBenchmark && (
-                    <div className="border-t border-gray-200 p-4 space-y-4">
+                    <div className="border-t border-slate-200 p-4 space-y-4">
                         {/* Query Input */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-slate-700 mb-1">
                                 Test queries (comma-separated)
                             </label>
                             <textarea
@@ -1393,34 +1390,29 @@ ${comprehensiveResults.results.map(r =>
                                 onChange={(e) => setComprehensiveQueries(e.target.value)}
                                 placeholder="Enter queries separated by commas..."
                                 rows={3}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded
-                                         focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900
-                                         resize-none"
+                                className="w-full cli-input resize-none"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-slate-500 mt-1">
                                 {comprehensiveQueries.split(',').filter(q => q.trim().length > 0).length} queries
                             </p>
                         </div>
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-600">top_k:</label>
+                                <label className="text-xs text-slate-600">top_k:</label>
                                 <input
                                     type="number"
                                     min={1}
                                     max={1000}
                                     value={comprehensiveTopK}
                                     onChange={(e) => setComprehensiveTopK(Number(e.target.value))}
-                                    className="w-20 px-2 py-1.5 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                    className="w-20 cli-input"
                                 />
                             </div>
                             <button
                                 onClick={handleRunComprehensiveBenchmark}
                                 disabled={comprehensiveLoading}
-                                className="px-6 py-2 text-sm font-medium text-white bg-gray-900
-                                         rounded hover:bg-gray-800 disabled:bg-gray-300
-                                         disabled:cursor-not-allowed transition-colors"
+                                className="cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                             >
                                 {comprehensiveLoading ? 'Running All Indexes...' : 'Run Comprehensive Benchmark'}
                             </button>
@@ -1428,17 +1420,17 @@ ${comprehensiveResults.results.map(r =>
 
                         {/* Error Display */}
                         {comprehensiveError && (
-                            <div className="border border-red-200 rounded-lg p-3 bg-red-50">
-                                <p className="text-sm text-red-700">{comprehensiveError}</p>
+                            <div className="cli-panel-muted p-3 border-rose-200 bg-rose-50">
+                                <p className="text-sm text-rose-700">{comprehensiveError}</p>
                             </div>
                         )}
 
                         {/* Loading State */}
                         {comprehensiveLoading && (
-                            <div className="border border-blue-200 rounded-lg p-6 bg-blue-50 text-center">
+                            <div className="cli-panel-muted p-6 text-center">
                                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
-                                <p className="text-sm text-blue-700">Running benchmark across all index types...</p>
-                                <p className="text-xs text-blue-500 mt-1">This may take a while depending on dataset size</p>
+                                <p className="text-sm text-indigo-700">Running benchmark across all index types...</p>
+                                <p className="text-xs text-indigo-500 mt-1">This may take a while depending on dataset size</p>
                             </div>
                         )}
 
@@ -1449,10 +1441,10 @@ ${comprehensiveResults.results.map(r =>
                                 <div className="flex justify-end">
                                     <button
                                         onClick={handleCopyComprehensiveResults}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`cli-button font-mono ${
                                             comprehensiveCopied
-                                                ? 'bg-green-600 text-white border-green-600'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                                : ''
                                         }`}
                                     >
                                         {comprehensiveCopied ? 'Copied!' : 'Copy All Results'}
@@ -1460,20 +1452,20 @@ ${comprehensiveResults.results.map(r =>
                                 </div>
 
                                 {/* Summary Overview */}
-                                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Benchmark Summary</h4>
+                                <div className="cli-panel-muted p-4">
+                                    <h4 className="cli-header mb-3">Benchmark Summary</h4>
                                     <div className="grid grid-cols-3 gap-4 mb-4">
-                                        <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                            <p className="text-xs text-gray-500 mb-1">Queries Tested</p>
-                                            <p className="text-xl font-mono text-gray-900">{comprehensiveResults.num_queries}</p>
+                                        <div className="cli-panel-strong p-3">
+                                            <p className="text-xs text-slate-500 mb-1">Queries Tested</p>
+                                            <p className="text-xl font-mono text-slate-900">{comprehensiveResults.num_queries}</p>
                                         </div>
-                                        <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                            <p className="text-xs text-gray-500 mb-1">Top K</p>
-                                            <p className="text-xl font-mono text-gray-900">{comprehensiveTopK}</p>
+                                        <div className="cli-panel-strong p-3">
+                                            <p className="text-xs text-slate-500 mb-1">Top K</p>
+                                            <p className="text-xl font-mono text-slate-900">{comprehensiveTopK}</p>
                                         </div>
-                                        <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                            <p className="text-xs text-gray-500 mb-1">Indexes Compared</p>
-                                            <p className="text-xl font-mono text-gray-900">4</p>
+                                        <div className="cli-panel-strong p-3">
+                                            <p className="text-xs text-slate-500 mb-1">Indexes Compared</p>
+                                            <p className="text-xl font-mono text-slate-900">4</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1524,22 +1516,22 @@ ${comprehensiveResults.results.map(r =>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {/* BruteForce */}
                                     <div className={`border rounded-lg p-4 ${getIndexBgColor('bruteforce')}`}>
-                                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                                        <h4 className="text-sm font-medium text-slate-900 mb-3 flex items-center gap-2">
                                             BruteForce
-                                            <span className="text-[10px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">Baseline</span>
+                                            <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">Baseline</span>
                                         </h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Mean Latency</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Mean Latency</p>
                                                 <p className="font-mono text-sm">{formatNanoseconds(comprehensiveResults.bruteforce.mean_latency_ns)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall</p>
                                                 <p className="font-mono text-sm text-green-600">{(comprehensiveResults.bruteforce.mean_recall * 100).toFixed(2)}%</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Speedup</p>
-                                                <p className="font-mono text-sm text-gray-500">{comprehensiveResults.bruteforce.mean_speedup.toFixed(2)}x</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Speedup</p>
+                                                <p className="font-mono text-sm text-slate-500">{comprehensiveResults.bruteforce.mean_speedup.toFixed(2)}x</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1551,24 +1543,24 @@ ${comprehensiveResults.results.map(r =>
                                         </h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Mean Latency</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Mean Latency</p>
                                                 <p className="font-mono text-sm">{formatNanoseconds(comprehensiveResults.ivf.mean_latency_ns)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall</p>
                                                 <p className={`font-mono text-sm ${getRecallColor(comprehensiveResults.ivf.mean_recall)}`}>
                                                     {(comprehensiveResults.ivf.mean_recall * 100).toFixed(2)}%
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Speedup vs BF</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Speedup vs BF</p>
                                                 <p className={`font-mono text-sm ${getSpeedupColor(comprehensiveResults.ivf.mean_speedup)}`}>
                                                     {comprehensiveResults.ivf.mean_speedup.toFixed(2)}x
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall Range</p>
-                                                <p className="font-mono text-xs text-gray-600">
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall Range</p>
+                                                <p className="font-mono text-xs text-slate-600">
                                                     {(comprehensiveResults.ivf.min_recall * 100).toFixed(1)}% - {(comprehensiveResults.ivf.max_recall * 100).toFixed(1)}%
                                                 </p>
                                             </div>
@@ -1582,24 +1574,24 @@ ${comprehensiveResults.results.map(r =>
                                         </h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Mean Latency</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Mean Latency</p>
                                                 <p className="font-mono text-sm">{formatNanoseconds(comprehensiveResults.ivfpq.mean_latency_ns)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall</p>
                                                 <p className={`font-mono text-sm ${getRecallColor(comprehensiveResults.ivfpq.mean_recall)}`}>
                                                     {(comprehensiveResults.ivfpq.mean_recall * 100).toFixed(2)}%
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Speedup vs BF</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Speedup vs BF</p>
                                                 <p className={`font-mono text-sm ${getSpeedupColor(comprehensiveResults.ivfpq.mean_speedup)}`}>
                                                     {comprehensiveResults.ivfpq.mean_speedup.toFixed(2)}x
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall Range</p>
-                                                <p className="font-mono text-xs text-gray-600">
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall Range</p>
+                                                <p className="font-mono text-xs text-slate-600">
                                                     {(comprehensiveResults.ivfpq.min_recall * 100).toFixed(1)}% - {(comprehensiveResults.ivfpq.max_recall * 100).toFixed(1)}%
                                                 </p>
                                             </div>
@@ -1613,24 +1605,24 @@ ${comprehensiveResults.results.map(r =>
                                         </h4>
                                         <div className="space-y-2">
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Mean Latency</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Mean Latency</p>
                                                 <p className="font-mono text-sm">{formatNanoseconds(comprehensiveResults.hnsw.mean_latency_ns)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall</p>
                                                 <p className={`font-mono text-sm ${getRecallColor(comprehensiveResults.hnsw.mean_recall)}`}>
                                                     {(comprehensiveResults.hnsw.mean_recall * 100).toFixed(2)}%
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Speedup vs BF</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">Speedup vs BF</p>
                                                 <p className={`font-mono text-sm ${getSpeedupColor(comprehensiveResults.hnsw.mean_speedup)}`}>
                                                     {comprehensiveResults.hnsw.mean_speedup.toFixed(2)}x
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 uppercase">Recall Range</p>
-                                                <p className="font-mono text-xs text-gray-600">
+                                                <p className="text-[10px] text-slate-500 uppercase">Recall Range</p>
+                                                <p className="font-mono text-xs text-slate-600">
                                                     {(comprehensiveResults.hnsw.min_recall * 100).toFixed(1)}% - {(comprehensiveResults.hnsw.max_recall * 100).toFixed(1)}%
                                                 </p>
                                             </div>
@@ -1639,8 +1631,8 @@ ${comprehensiveResults.results.map(r =>
                                 </div>
 
                                 {/* Comparison Chart - Recall vs Speedup */}
-                                <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm">
-                                    <h4 className="text-sm text-gray-900 mb-4">Recall vs Speedup Comparison</h4>
+                                <div className="cli-panel-strong p-5">
+                                    <h4 className="cli-header mb-4">Recall vs Speedup Comparison</h4>
                                     <div className="grid grid-cols-4 gap-4">
                                         {(['ivf', 'ivfpq', 'hnsw'] as const).map((indexName) => {
                                             const stats = comprehensiveResults[indexName];
@@ -1651,8 +1643,8 @@ ${comprehensiveResults.results.map(r =>
                                                         <span className={`text-sm font-medium ${getIndexColor(indexName)}`}>{indexName.toUpperCase()}</span>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] text-gray-500 mb-1">Recall</p>
-                                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <p className="text-[10px] text-slate-500 mb-1">Recall</p>
+                                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                                             <div
                                                                 className={`h-full rounded-full transition-all duration-500 ${
                                                                     recallPct >= 95 ? 'bg-green-500' : recallPct >= 80 ? 'bg-amber-400' : 'bg-rose-500'
@@ -1665,11 +1657,11 @@ ${comprehensiveResults.results.map(r =>
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[10px] text-gray-500 mb-1">Speedup</p>
-                                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <p className="text-[10px] text-slate-500 mb-1">Speedup</p>
+                                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                                             <div
                                                                 className={`h-full rounded-full transition-all duration-500 ${
-                                                                    stats.mean_speedup >= 100 ? 'bg-green-500' : stats.mean_speedup >= 10 ? 'bg-blue-500' : 'bg-gray-400'
+                                                                    stats.mean_speedup >= 100 ? 'bg-green-500' : stats.mean_speedup >= 10 ? 'bg-blue-500' : 'bg-slate-400'
                                                                 }`}
                                                                 style={{ width: `${Math.min(100, (stats.mean_speedup / Math.max(comprehensiveResults.ivf.mean_speedup, comprehensiveResults.ivfpq.mean_speedup, comprehensiveResults.hnsw.mean_speedup)) * 100)}%` }}
                                                             />
@@ -1684,36 +1676,36 @@ ${comprehensiveResults.results.map(r =>
                                         {/* BruteForce baseline reference */}
                                         <div className="space-y-3 opacity-60">
                                             <div className="text-center">
-                                                <span className="text-sm font-medium text-gray-600">BF (Baseline)</span>
+                                                <span className="text-sm font-medium text-slate-600">BF (Baseline)</span>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 mb-1">Recall</p>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <p className="text-[10px] text-slate-500 mb-1">Recall</p>
+                                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                                     <div className="h-full rounded-full bg-green-500" style={{ width: '100%' }} />
                                                 </div>
                                                 <p className="text-xs font-mono mt-0.5 text-green-600">100%</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-gray-500 mb-1">Speedup</p>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div className="h-full rounded-full bg-gray-300" style={{ width: '1%' }} />
+                                                <p className="text-[10px] text-slate-500 mb-1">Speedup</p>
+                                                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full bg-slate-300" style={{ width: '1%' }} />
                                                 </div>
-                                                <p className="text-xs font-mono mt-0.5 text-gray-500">1x</p>
+                                                <p className="text-xs font-mono mt-0.5 text-slate-500">1x</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Detailed Individual Results */}
-                                <div className="border border-gray-200 rounded-lg bg-white">
+                                <div className="cli-panel-strong">
                                     <div
-                                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-200"
+                                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-200"
                                         onClick={() => setShowComprehensiveDetailedResults(!showComprehensiveDetailedResults)}
                                     >
-                                        <h4 className="text-sm text-gray-900">
+                                        <h4 className="text-sm text-slate-900">
                                             Individual Query Results ({comprehensiveResults.results.length})
                                         </h4>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-slate-500">
                                             {showComprehensiveDetailedResults ? '▲ Hide' : '▼ Show'}
                                         </span>
                                     </div>
@@ -1721,28 +1713,28 @@ ${comprehensiveResults.results.map(r =>
                                     {showComprehensiveDetailedResults && (
                                         <div className="max-h-96 overflow-y-auto">
                                             <table className="w-full text-sm">
-                                                <thead className="bg-gray-50 sticky top-0">
+                                                <thead className="bg-slate-50 sticky top-0">
                                                     <tr>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Query</th>
-                                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">BF Time</th>
+                                                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase">Query</th>
+                                                        <th className="px-3 py-2 text-right text-xs font-medium text-slate-500 uppercase">BF Time</th>
                                                         <th className="px-3 py-2 text-right text-xs font-medium text-blue-500 uppercase">IVF</th>
                                                         <th className="px-3 py-2 text-right text-xs font-medium text-purple-500 uppercase">IVF-PQ</th>
                                                         <th className="px-3 py-2 text-right text-xs font-medium text-green-500 uppercase">HNSW</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-gray-200">
+                                                <tbody className="divide-y divide-slate-200">
                                                     {comprehensiveResults.results.map((result, idx) => (
-                                                        <tr key={idx} className="hover:bg-gray-50">
-                                                            <td className="px-3 py-2 text-gray-900 max-w-xs truncate" title={result.query}>
+                                                        <tr key={idx} className="hover:bg-slate-50">
+                                                            <td className="px-3 py-2 text-slate-900 max-w-xs truncate" title={result.query}>
                                                                 {result.query}
                                                             </td>
-                                                            <td className="px-3 py-2 text-right font-mono text-gray-600 text-xs">
+                                                            <td className="px-3 py-2 text-right font-mono text-slate-600 text-xs">
                                                                 {formatNanoseconds(result.bf_time_ns)}
                                                             </td>
                                                             <td className="px-3 py-2 text-right">
                                                                 <div className="flex flex-col items-end">
                                                                     <span className="font-mono text-xs text-blue-600">{formatNanoseconds(result.ivf_time_ns)}</span>
-                                                                    <span className="text-[10px] text-gray-500">
+                                                                    <span className="text-[10px] text-slate-500">
                                                                         {result.ivf_speedup.toFixed(1)}x • {(result.ivf_recall * 100).toFixed(0)}%
                                                                     </span>
                                                                 </div>
@@ -1750,7 +1742,7 @@ ${comprehensiveResults.results.map(r =>
                                                             <td className="px-3 py-2 text-right">
                                                                 <div className="flex flex-col items-end">
                                                                     <span className="font-mono text-xs text-purple-600">{formatNanoseconds(result.ivfpq_time_ns)}</span>
-                                                                    <span className="text-[10px] text-gray-500">
+                                                                    <span className="text-[10px] text-slate-500">
                                                                         {result.ivfpq_speedup.toFixed(1)}x • {(result.ivfpq_recall * 100).toFixed(0)}%
                                                                     </span>
                                                                 </div>
@@ -1758,7 +1750,7 @@ ${comprehensiveResults.results.map(r =>
                                                             <td className="px-3 py-2 text-right">
                                                                 <div className="flex flex-col items-end">
                                                                     <span className="font-mono text-xs text-green-600">{formatNanoseconds(result.hnsw_time_ns)}</span>
-                                                                    <span className="text-[10px] text-gray-500">
+                                                                    <span className="text-[10px] text-slate-500">
                                                                         {result.hnsw_speedup.toFixed(1)}x • {(result.hnsw_recall * 100).toFixed(0)}%
                                                                     </span>
                                                                 </div>

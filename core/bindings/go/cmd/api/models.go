@@ -112,6 +112,29 @@ type (
 		PreviousSource string `json:"previous_source,omitempty"`
 	}
 
+	IngestionEvaluateFile struct {
+		Name      string `json:"name"`
+		Type      string `json:"type"`
+		SizeBytes int64  `json:"size_bytes"`
+	}
+
+	IngestionEvaluateRequest struct {
+		Files []IngestionEvaluateFile `json:"files"`
+	}
+
+	IngestionEvaluateResult struct {
+		Name      string `json:"name"`
+		Type      string `json:"type"`
+		SizeBytes int64  `json:"size_bytes"`
+		Available bool   `json:"available"`
+		Reason    string `json:"reason,omitempty"`
+	}
+
+	IngestionEvaluateResponse struct {
+		Files               []IngestionEvaluateResult `json:"files"`
+		SupportedExtensions []string                  `json:"supported_extensions,omitempty"`
+	}
+
 	IVFConfigRequest struct {
 		Nlist  int64 `json:"nlist"`
 		Nprobe int64 `json:"nprobe"`

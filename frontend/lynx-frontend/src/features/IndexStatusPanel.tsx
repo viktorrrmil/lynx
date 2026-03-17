@@ -125,14 +125,14 @@ export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
     ];
 
     return (
-        <div className="border border-amber-200 rounded-lg p-4 bg-amber-50 mb-8">
+        <div className="cli-panel-muted p-4 mb-8 border-amber-200 bg-amber-50">
             <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
                     <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-medium text-amber-900">Building Indexes</h3>
-                    <p className="text-xs text-amber-700">{readyStatus.message}</p>
+                    <h3 className="cli-header text-amber-900">Building Indexes</h3>
+                    <p className="text-xs text-amber-700 font-mono">{readyStatus.message}</p>
                 </div>
             </div>
 
@@ -142,19 +142,19 @@ export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
                         key={index.key}
                         className={`border rounded-lg p-3 transition-all ${
                             index.ready
-                                ? 'border-green-200 bg-green-50'
+                                ? 'border-emerald-200 bg-emerald-50'
                                 : 'border-amber-200 bg-white'
                         }`}
                     >
                         <div className="flex items-center gap-2 mb-1">
                             {index.ready ? (
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
+                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
                             ) : (
                                 <div className="w-2 h-2 rounded-full bg-amber-400" />
                             )}
-                            <span className="text-xs font-medium text-gray-900">{index.name}</span>
+                            <span className="text-xs font-medium text-slate-900 font-mono">{index.name}</span>
                         </div>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-slate-600 font-mono">
                             {index.ready ? 'Ready' : index.name === 'HNSW' ? 'Building (this may take a while)' : 'Building'}
                         </p>
                     </div>
@@ -163,7 +163,7 @@ export const IndexBuildingStatus = ({ onReady }: IndexBuildingStatusProps) => {
 
             {readyStatus.status?.vector_count !== undefined && (
                 <div className="mt-3 pt-3 border-t border-amber-200">
-                    <p className="text-xs text-amber-700">
+                    <p className="text-xs text-amber-700 font-mono">
                         Vectors loaded: <span className="font-mono font-medium">{readyStatus.status.vector_count}</span>
                     </p>
                 </div>

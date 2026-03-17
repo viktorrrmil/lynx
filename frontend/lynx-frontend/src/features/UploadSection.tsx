@@ -51,35 +51,39 @@ const UploadSection = ({
     };
 
     return (
-        <div className="w-full h-full border border-slate-200 rounded-lg p-6 bg-gradient-to-br from-slate-50 to-blue-50/30">
-            <div className="flex gap-4 items-start">
-                <div className="flex-1">
+        <div className="w-full h-full cli-panel p-6">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+                <div className="flex-1 min-w-[220px]">
+                    <p className="cli-header mb-3">Dataset Ingest</p>
                     <input
                         type="file"
                         accept=".txt"
                         onChange={handleFileChange}
-                        className="block w-full text-sm text-gray-600
+                        className="block w-full text-xs text-slate-600 font-mono
                                          file:mr-4 file:py-2 file:px-4
-                                         file:rounded file:border file:border-gray-300
-                                         file:text-sm file:font-medium
-                                         file:bg-white file:text-gray-700
-                                         hover:file:bg-gray-50
+                                         file:rounded file:border file:border-slate-300
+                                         file:text-xs file:font-semibold
+                                         file:bg-white file:text-slate-700
+                                         hover:file:bg-slate-50
                                          file:cursor-pointer cursor-pointer"
                     />
                     <button
                         onClick={handleUpload}
                         disabled={loading || !file}
-                        className="mt-4 px-4 py-2 text-sm font-medium text-white bg-gray-900
-                                         rounded hover:bg-gray-800 disabled:bg-gray-300
-                                         disabled:cursor-not-allowed transition-colors"
+                        className="mt-4 cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                     >
                         {loading ? 'Processing...' : 'Upload & Index'}
                     </button>
                 </div>
+                <div className="min-w-[200px]">
+                    <p className="text-xs text-slate-500 font-mono leading-relaxed">
+                        Upload plain text lines (one item per line), ".txt" files only.
+                    </p>
+                </div>
             </div>
 
             {message && (
-                <p className="mt-4 text-sm text-gray-600 border-l-2 border-gray-900 pl-3">
+                <p className="mt-4 text-xs text-slate-600 border-l-2 border-slate-900 pl-3 font-mono">
                     {message}
                 </p>
             )}

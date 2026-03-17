@@ -1,10 +1,12 @@
 import {useState} from 'react';
 import type {IndexResults} from "../types/types.ts";
 import ResultsColumn from "./results/ResultColumn.tsx";
+import DatasetIngestionCard from "./DatasetIngestionCard.tsx";
+import DatasetIngestionDialog from "./DatasetIngestionDialog.tsx";
 import UploadSection from "./UploadSection.tsx";
 import InfoScreen from "./InfoScreen.tsx";
 import VectorCacheSection from "./VectorCacheSection.tsx";
-import { IndexStatusPanel, IndexStatusToggle, IndexBuildingStatus } from "./IndexStatusPanel.tsx";
+import { IndexBuildingStatus } from "./IndexStatusPanel.tsx";
 import BenchmarkSection from "./BenchmarkSection.tsx";
 import MasterControlTerminal from "./MasterControlTerminal.tsx";
 
@@ -25,11 +27,11 @@ const MainScreen = () => {
     const [ivfTrackRecall, setIvfTrackRecall] = useState(false);
     const [ivfPqTrackRecall, setIvfPqTrackRecall] = useState(false);
     const [hnswTrackRecall, setHnswTrackRecall] = useState(false);
-    const [indexStatusExpanded, setIndexStatusExpanded] = useState(false);
     const [indexesReady, setIndexesReady] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('search');
     const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
     const [showTerminal, setShowTerminal] = useState(false);
+    const [ingestionDialogOpen, setIngestionDialogOpen] = useState(false);
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -145,22 +147,22 @@ const MainScreen = () => {
     };
 
     return (
-        <div className={`min-h-screen ${showTerminal ? 'bg-slate-50' : 'bg-white'}`}>
+        <div className={`min-h-screen cli-shell`}>
             <div className={`${showTerminal ? 'max-w-screen-2xl' : 'max-w-7xl'} mx-auto px-6 py-8`}>
+                <DatasetIngestionDialog
+                    open={ingestionDialogOpen}
+                    onClose={() => setIngestionDialogOpen(false)}
+                />
                 {/* Header */}
-                <div className="flex w-full justify-between mb-6 items-stretch gap-4">
-                    <div className="flex items-center gap-6">
+                <div className="flex w-full justify-between mb-8 items-start gap-6">
+                    <div className="flex items-start gap-6">
                         <div>
                             <h1
-                                className={`text-2xl tracking-tight ${
-                                    showTerminal
-                                        ? 'font-semibold text-slate-900 font-mono uppercase tracking-wide'
-                                        : 'font-light text-gray-900'
-                                }`}
+                                className="cli-title"
                             >
                                 {showTerminal ? 'Master Control Terminal' : 'Lynx - Vector Search Engine'}
                             </h1>
-                            <p className={`text-sm mt-2 ${showTerminal ? 'text-slate-500 font-mono' : 'text-gray-500'}`}>
+                            <p className="cli-subtitle mt-2">
                                 {showTerminal
                                     ? 'System-wide admin dashboard and operational status'
                                     : 'Compare BruteForce vs IVF index performance'}
@@ -172,40 +174,40 @@ const MainScreen = () => {
                             <div className="relative">
                                 <button
                                     onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 transition-colors"
+                                    className="cli-button flex items-center gap-2 font-mono"
                                 >
                                     <span className={`w-2 h-2 rounded-full ${appMode === 'search' ? 'bg-green-500' : 'bg-blue-500'}`} />
                                     {appMode === 'search' ? 'Search Mode' : 'Benchmark Mode'}
-                                    <span className="text-gray-400">{modeDropdownOpen ? '▲' : '▼'}</span>
+                                    <span className="text-slate-400">{modeDropdownOpen ? '▲' : '▼'}</span>
                                 </button>
 
                                 {modeDropdownOpen && (
-                                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                    <div className="absolute top-full left-0 mt-1 w-full cli-panel-strong z-10">
                                         <button
                                             onClick={() => {
                                                 setAppMode('search');
                                                 setModeDropdownOpen(false);
                                             }}
-                                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-t-lg ${
-                                                appMode === 'search' ? 'bg-gray-50' : ''
+                                            className={`w-full flex items-center gap-2 px-4 py-2 text-xs text-left font-mono hover:bg-slate-50 transition-colors rounded-t-lg ${
+                                                appMode === 'search' ? 'bg-slate-50' : ''
                                             }`}
                                         >
                                             <span className="w-2 h-2 rounded-full bg-green-500" />
                                             Search
-                                            {appMode === 'search' && <span className="ml-auto text-gray-400">✓</span>}
+                                            {appMode === 'search' && <span className="ml-auto text-slate-400">✓</span>}
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setAppMode('benchmark');
                                                 setModeDropdownOpen(false);
                                             }}
-                                            className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors rounded-b-lg ${
-                                                appMode === 'benchmark' ? 'bg-gray-50' : ''
+                                            className={`w-full flex items-center gap-2 px-4 py-2 text-xs text-left font-mono hover:bg-slate-50 transition-colors rounded-b-lg ${
+                                                appMode === 'benchmark' ? 'bg-slate-50' : ''
                                             }`}
                                         >
                                             <span className="w-2 h-2 rounded-full bg-blue-500" />
                                             Benchmark
-                                            {appMode === 'benchmark' && <span className="ml-auto text-gray-400">✓</span>}
+                                            {appMode === 'benchmark' && <span className="ml-auto text-slate-400">✓</span>}
                                         </button>
                                     </div>
                                 )}
@@ -218,20 +220,12 @@ const MainScreen = () => {
                                 setShowTerminal(!showTerminal);
                                 setModeDropdownOpen(false);
                             }}
-                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-                                showTerminal
-                                    ? 'bg-slate-900 text-slate-50 border-slate-900 hover:bg-slate-800 font-mono'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={showTerminal ? 'cli-button-primary font-mono' : 'cli-button font-mono'}
                         >
                             {showTerminal ? 'Back to Main' : 'Master Control'}
                         </button>
                         {!showTerminal && (
                             <>
-                                <IndexStatusToggle
-                                    isExpanded={indexStatusExpanded}
-                                    onToggle={() => setIndexStatusExpanded(!indexStatusExpanded)}
-                                />
                                 <VectorCacheSection />
                             </>
                         )}
@@ -242,9 +236,6 @@ const MainScreen = () => {
                     <MasterControlTerminal />
                 ) : (
                     <>
-                        {/* Index Status Panel */}
-                        <IndexStatusPanel isExpanded={indexStatusExpanded} />
-
                         {/* Index Building Status - shows when indexes are being built */}
                         {!indexesReady && (
                             <IndexBuildingStatus onReady={() => setIndexesReady(true)} />
@@ -254,20 +245,17 @@ const MainScreen = () => {
                         {appMode === 'search' && (
                             <>
                         {/* Upload Section */}
-                        <div className="flex w-full justify-center mb-12 items-stretch gap-4">
-                            <div className="flex-1">
-                                <UploadSection loading={loading} setLoading={setLoading} />
-                            </div>
-                            <div className="flex-1">
-                                <InfoScreen />
-                            </div>
+                        <div className="flex w-full flex-col gap-4 mb-10">
+                            <DatasetIngestionCard onOpen={() => setIngestionDialogOpen(true)} />
+                            <UploadSection loading={loading} setLoading={setLoading} />
+                            <InfoScreen />
                         </div>
 
 
                         {/* Search Section */}
                         <div>
                             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                                <h2 className="text-sm font-medium text-gray-900">
+                                <h2 className="cli-header">
                                     Search Active Indexes
                                 </h2>
 
@@ -275,20 +263,20 @@ const MainScreen = () => {
                                 <div className="flex gap-2 flex-wrap">
                                     <button
                                         onClick={() => setBfActive(!bfActive)}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                             bfActive
-                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                         }`}
                                     >
                                         BruteForce {bfActive ? '✓' : '○'}
                                     </button>
                                     <button
                                         onClick={() => setIvfActive(!ivfActive)}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                             ivfActive
-                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                         }`}
                                     >
                                         IVF {ivfActive ? '✓' : '○'}
@@ -296,10 +284,10 @@ const MainScreen = () => {
                                     {ivfActive && (
                                         <button
                                             onClick={() => setIvfTrackRecall(!ivfTrackRecall)}
-                                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                            className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                                 ivfTrackRecall
-                                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                             }`}
                                             title="Track IVF Recall@k"
                                         >
@@ -308,10 +296,10 @@ const MainScreen = () => {
                                     )}
                                     <button
                                         onClick={() => setIvfPqActive(!ivfPqActive)}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                             ivfPqActive
-                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                         }`}
                                     >
                                         IVF-PQ {ivfPqActive ? '✓' : '○'}
@@ -319,10 +307,10 @@ const MainScreen = () => {
                                     {ivfPqActive && (
                                         <button
                                             onClick={() => setIvfPqTrackRecall(!ivfPqTrackRecall)}
-                                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                            className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                                 ivfPqTrackRecall
-                                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                             }`}
                                             title="Track IVF-PQ Recall@k"
                                         >
@@ -331,10 +319,10 @@ const MainScreen = () => {
                                     )}
                                     <button
                                         onClick={() => setHnswActive(!hnswActive)}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                        className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                             hnswActive
-                                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                         }`}
                                     >
                                         HNSW {hnswActive ? '✓' : '○'}
@@ -342,10 +330,10 @@ const MainScreen = () => {
                                     {hnswActive && (
                                         <button
                                             onClick={() => setHnswTrackRecall(!hnswTrackRecall)}
-                                            className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                            className={`px-3 py-1.5 text-xs font-medium rounded border font-mono transition-colors ${
                                                 hnswTrackRecall
-                                                    ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-                                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                                             }`}
                                             title="Track HNSW Recall@k"
                                         >
@@ -362,8 +350,7 @@ const MainScreen = () => {
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                        className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded
-                                             focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        className="flex-1 cli-input"
                                     />
                                     <input
                                         type="number"
@@ -371,14 +358,12 @@ const MainScreen = () => {
                                         max={1000}
                                         value={k}
                                         onChange={(e) => setK(Number(e.target.value))}
-                                        className="w-24 px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
+                                        className="w-24 cli-input"
                                     />
                                     <button
                                         onClick={handleSearch}
                                         disabled={loading || (!bfActive && !ivfActive && !ivfPqActive && !hnswActive)}
-                                        className="px-6 py-2 text-sm font-medium text-white bg-gray-900
-                                             rounded hover:bg-gray-800 disabled:bg-gray-300
-                                             disabled:cursor-not-allowed transition-colors"
+                                        className="cli-button-primary disabled:bg-slate-300 disabled:cursor-not-allowed"
                                     >
                                         {loading ? 'Searching...' :
                                          !bfActive && !ivfActive && !ivfPqActive && !hnswActive ? 'Select Index' :
@@ -418,8 +403,8 @@ const MainScreen = () => {
                                     };
 
                                     return (
-                                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Performance Ranking</p>
+                                        <div className="cli-panel-muted p-4">
+                                            <p className="cli-pill mb-3">Performance Ranking</p>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 {indexTimes.map((index, i) => {
                                                     const isFirst = i === 0;
@@ -428,26 +413,26 @@ const MainScreen = () => {
                                                     return (
                                                         <div key={index.name} className="flex items-center gap-2">
                                                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
-                                                                isFirst ? 'bg-green-100 border border-green-300' : 
-                                                                isLast ? 'bg-red-50 border border-red-200' : 
-                                                                'bg-white border border-gray-200'
+                                                                isFirst ? 'bg-emerald-100 border border-emerald-300' :
+                                                                isLast ? 'bg-rose-50 border border-rose-200' :
+                                                                'bg-white border border-slate-200'
                                                             }`}>
                                                                 <div className={`w-2 h-2 rounded-full ${index.color}`} />
                                                                 <span className={`text-sm font-medium ${
-                                                                    isFirst ? 'text-green-800' : 
-                                                                    isLast ? 'text-red-700' : 
-                                                                    'text-gray-700'
+                                                                    isFirst ? 'text-emerald-800' :
+                                                                    isLast ? 'text-rose-700' :
+                                                                    'text-slate-700'
                                                                 }`}>
                                                                     {index.name}
                                                                 </span>
-                                                                <span className="text-xs text-gray-500 font-mono">
+                                                                <span className="text-xs text-slate-500 font-mono">
                                                                     {formatTime(index.time)}
                                                                 </span>
                                                             </div>
                                                             {i < indexTimes.length - 1 && (
-                                                                <div className="flex items-center gap-1 text-gray-400">
+                                                                <div className="flex items-center gap-1 text-slate-400">
                                                                     <span className="text-lg font-light">»</span>
-                                                                    <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
+                                                                    <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
                                                                         {(indexTimes[i + 1].time / index.time).toFixed(1)}x
                                                                     </span>
                                                                     <span className="text-lg font-light">»</span>
@@ -457,9 +442,9 @@ const MainScreen = () => {
                                                     );
                                                 })}
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-2">
+                                            <p className="text-xs text-slate-500 mt-2">
                                                 Fastest to slowest • {indexTimes[0].name} is{' '}
-                                                <span className="font-mono font-medium text-green-700">
+                                                <span className="font-mono font-medium text-emerald-700">
                                                     {(slowestTime / indexTimes[0].time).toFixed(1)}x
                                                 </span>
                                                 {' '}faster than {indexTimes[indexTimes.length - 1].name}
@@ -470,13 +455,13 @@ const MainScreen = () => {
 
                                 {/* Recall Display */}
                                 {ivfActive && ivfTrackRecall && ivfResults.recall !== undefined && ivfResults.recall !== -1 && (
-                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-                                        <p className="text-sm text-gray-900">
+                                    <div className="cli-panel-muted p-4">
+                                        <p className="text-sm text-slate-900">
                                             <span className="font-medium">IVF Recall@{k}:</span>{' '}
-                                            <span className="font-mono font-medium text-blue-700">
+                                            <span className="font-mono font-medium text-indigo-700">
                                                 {(ivfResults.recall * 100).toFixed(2)}%
                                             </span>
-                                            <span className="text-gray-600 ml-2">
+                                            <span className="text-slate-600 ml-2">
                                                 ({ivfResults.recall.toFixed(4)})
                                             </span>
                                         </p>
@@ -484,13 +469,13 @@ const MainScreen = () => {
                                 )}
 
                                 {ivfPqActive && ivfPqTrackRecall && ivfPqResults.recall !== undefined && ivfPqResults.recall !== -1 && (
-                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-                                        <p className="text-sm text-gray-900">
+                                    <div className="cli-panel-muted p-4">
+                                        <p className="text-sm text-slate-900">
                                             <span className="font-medium">IVF-PQ Recall@{k}:</span>{' '}
-                                            <span className="font-mono font-medium text-blue-700">
+                                            <span className="font-mono font-medium text-indigo-700">
                                                 {(ivfPqResults.recall * 100).toFixed(2)}%
                                             </span>
-                                            <span className="text-gray-600 ml-2">
+                                            <span className="text-slate-600 ml-2">
                                                 ({ivfPqResults.recall.toFixed(4)})
                                             </span>
                                         </p>
@@ -498,13 +483,13 @@ const MainScreen = () => {
                                 )}
 
                                 {hnswActive && hnswTrackRecall && hnswResults.recall !== undefined && hnswResults.recall !== -1 && (
-                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-                                        <p className="text-sm text-gray-900">
+                                    <div className="cli-panel-muted p-4">
+                                        <p className="text-sm text-slate-900">
                                             <span className="font-medium">HNSW Recall@{k}:</span>{' '}
-                                            <span className="font-mono font-medium text-blue-700">
+                                            <span className="font-mono font-medium text-indigo-700">
                                                 {(hnswResults.recall * 100).toFixed(2)}%
                                             </span>
-                                            <span className="text-gray-600 ml-2">
+                                            <span className="text-slate-600 ml-2">
                                                 ({hnswResults.recall.toFixed(4)})
                                             </span>
                                         </p>

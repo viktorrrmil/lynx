@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .cli-shell {
+    @apply bg-slate-50 text-slate-900;
+  }
+
+  .cli-panel {
+    @apply border border-slate-200 rounded-lg bg-white/80 backdrop-blur-sm shadow-sm;
+  }
+
+  .cli-panel-strong {
+    @apply border border-slate-200 rounded-lg bg-white shadow-sm;
+  }
+
+  .cli-panel-muted {
+    @apply border border-slate-200 rounded-lg bg-slate-100/70;
+  }
+
+  .cli-title {
+    @apply text-lg font-semibold text-slate-900 font-mono tracking-[0.08em];
+  }
+
+  .cli-subtitle {
+    @apply text-xs text-slate-500 font-mono;
+  }
+
+  .cli-header {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 font-mono;
+  }
+
+  .cli-button {
+    @apply px-3 py-1.5 text-xs font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors;
+  }
+
+  .cli-button-primary {
+    @apply px-4 py-2 text-xs font-semibold rounded border border-slate-900 bg-slate-900 text-slate-50 hover:bg-slate-800 transition-colors;
+  }
+
+  .cli-input {
+    @apply px-3 py-2 text-sm border border-slate-300 rounded bg-white/90 focus:outline-none focus:ring-1 focus:ring-slate-700 focus:border-slate-700 font-mono;
+  }
+
+  .cli-pill {
+    @apply text-[10px] uppercase tracking-[0.2em] font-semibold text-slate-500;
+  }
+}
+
 .hot-swap-spinner {
   position: relative;
   display: inline-block;

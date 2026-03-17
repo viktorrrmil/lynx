@@ -35,3 +35,5 @@ core/bindings/python/build/
 /embeddings/.idea/
 /embeddings/venv/
 /.venv/
+
+/backup.sql

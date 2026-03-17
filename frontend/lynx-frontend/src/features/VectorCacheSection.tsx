@@ -73,45 +73,49 @@ const VectorCacheSection = () => {
             {/* Header Button - Always Visible */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
-                    isExpanded
-                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                className={`cli-button font-mono flex items-center gap-2 ${
+                    isExpanded ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800' : ''
                 }`}
             >
                 <span className={`transition-all duration-200 ${
                     isExpanded ? 'text-slate-50' : 'text-slate-800'
                 }`}>Vector Cache</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-[0.18em] bg-amber-100 text-amber-700 border border-amber-200">
+                    Stale
+                </span>
             </button>
 
             {/* Expanded Content - Floats absolutely */}
             <div
-                className={`absolute bg-gray-50 right-0 top-full mt-2 w-64 z-50 overflow-hidden transition-all shadow-xl duration-300 ease-in-out ${
+                className={`absolute right-0 top-full mt-2 w-72 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
                     isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
             >
-                <div className="border border-slate-200 rounded-lg bg-gradient-to-br from-slate-50 to-blue-50/30 shadow-lg">
-                    <div className="px-4 pb-4 pt-4">
+                <div className="cli-panel-strong">
+                    <div className="px-4 pb-4 pt-4 space-y-3">
+                        <p className="text-[11px] text-amber-700 font-mono bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                            Cache may be slightly outdated. Reload after ingest.
+                        </p>
                         {/* Action Buttons */}
-                        <div className="flex flex-col space-y-2 mb-3">
+                        <div className="flex flex-col space-y-2">
                             <button
                                 onClick={handleSaveEmbeddings}
                                 disabled={loading}
-                                className="px-3 py-1.5 text-xs border rounded bg-white hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="cli-button font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Save Embeddings
                             </button>
                             <button
                                 onClick={handleLoadEmbeddings}
                                 disabled={loading}
-                                className="px-3 py-1.5 text-xs border rounded bg-white hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="cli-button font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Load Embeddings
                             </button>
                             <button
                                 onClick={handleGetCacheInfo}
                                 disabled={loading}
-                                className="px-3 py-1.5 text-xs border rounded bg-white hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="cli-button font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Get Cache Info
                             </button>
@@ -121,8 +125,8 @@ const VectorCacheSection = () => {
                         {message && (
                             <div className={`text-xs p-2 rounded mb-2 ${
                                 message.includes('success') 
-                                    ? 'bg-green-50 text-green-800 border border-green-200' 
-                                    : 'bg-red-50 text-red-800 border border-red-200'
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                                    : 'bg-rose-50 text-rose-800 border border-rose-200'
                             }`}>
                                 {message}
                             </div>
@@ -132,14 +136,14 @@ const VectorCacheSection = () => {
                         {cacheInfo && (
                             <div className="flex flex-col space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-200">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-slate-700">Size:</span>
-                                    <span className="px-2 py-0.5 bg-blue-50 rounded border border-blue-200 text-blue-900">
+                                    <span className="text-slate-700 font-mono">Size</span>
+                                    <span className="px-2 py-0.5 bg-slate-900 rounded border border-slate-900 text-slate-50 font-mono">
                                         {cacheInfo.count}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-slate-700">Dimension:</span>
-                                    <span className="px-2 py-0.5 bg-indigo-50 rounded border border-indigo-200 text-indigo-900">
+                                    <span className="text-slate-700 font-mono">Dimension</span>
+                                    <span className="px-2 py-0.5 bg-indigo-600 rounded border border-indigo-600 text-white font-mono">
                                         {cacheInfo.dimension}
                                     </span>
                                 </div>
