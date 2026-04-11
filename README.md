@@ -1,24 +1,24 @@
 # Lynx - Vector Search Engine
 
-A prototype vector search engine with support for multiple indexing algorithms. This project implements core vector search functionality with a shared index architecture where vectors are viewed by indexes rather than owned by them.
+A vector search engine built from scratch in C++ with Go bindings, Python-based embeddings, and a full React UI for search, benchmarking, and operational control.
 
-> **Note:** This is a prototype version focused on core algorithms and vector engine business logic. No application layer has been implemented yet.
+Lynx is designed around a shared index architecture: vectors live in a central store, and multiple index types (Brute Force, IVF, IVF-PQ, HNSW) reference the same data for different accuracy/latency tradeoffs.
 
 ![search_screenshot](search_screenshot.png)
 
 ## Overview
 
-This is an experimental vector search engine built to explore different indexing and search algorithms. The current implementation includes:
+Lynx is an applied systems project focused on ANN indexing tradeoffs, index orchestration, and measurable performance. It includes:
 
 - **Brute Force**: Baseline exhaustive search for accuracy comparison
 - **IVF (Inverted File Index)**: Efficient approximate nearest neighbor search using clustering
 - **IVF-PQ (Inverted File Index with Product Quantization)**: Memory-efficient variant of IVF that compresses vectors using product quantization for reduced memory footprint
+- **HNSW (Hierarchical Navigable Small World Graphs)**: Graph-based ANN search for high recall and low latency
+- **Master Control Terminal**: Operational UI for index activity, job management, database status, and vector store hot swap
 
-## Current Status
+## Current Scope
 
-🚧 **Prototype Phase** 🚧
-
-Currently implemented:
+Implemented:
 - Brute force search (baseline)
 - IVF indexing algorithm
 - IVF-PQ indexing algorithm (IVF with Product Quantization)
@@ -26,10 +26,13 @@ Currently implemented:
 - Benchmarking tools for performance analysis and parameter optimization
 - Core vector storage and retrieval
 - Shared index architecture
+- Go API layer for search, indexing, status, and admin operations
+- React frontend for search workflows and operational monitoring
+- Geo ingestion/search path with WebSocket job updates
 
-Not yet implemented:
-- Application layer (APIs, UI, etc.)
-- More optimized embedding pipelines
+In progress:
+- Additional production hardening and deployment ergonomics
+- Further optimization of embedding and indexing workflows
 
 ## Prerequisites
 
@@ -129,7 +132,37 @@ The comprehensive benchmark compares **all four indexing algorithms** (BruteForc
 
 ## Architecture
 
-The engine uses a shared index model where:
-- Vectors are stored independently
-- Multiple indexes can reference the same vectors
-- Indexes provide different search strategies over the same data
+```text
+Data Sources -> Embedding Service (Python)
+                 |
+                 v
+            Go API Layer (orchestration, job control, status)
+                 |
+        +--------+---------+
+        |                  |
+        v                  v
+  C++ Core via Go Bindings   Postgres Stores (vector + geo)
+  (BruteForce/IVF/IVF-PQ/HNSW)
+        |
+        v
+   Search + Benchmark Endpoints -> React Frontend (UI + Master Control Terminal)
+```
+
+The engine uses a shared index model where vectors are stored independently and multiple indexes reference the same vectors.
+
+## Why I Built This
+
+I built Lynx to deeply understand vector search system design beyond library usage: how index structures behave under different constraints, how API and storage choices affect operability, and how to make algorithm selection data-driven with benchmarking.
+
+The core decisions were:
+- Build indexing logic in C++ for performance and control.
+- Expose it through Go bindings and APIs for pragmatic service integration.
+- Keep embeddings as a separate Python service to isolate model/runtime concerns.
+- Add a React operations UI so system behavior is visible, testable, and debuggable in real workflows.
+
+## What I Learned
+
+- A shared vector store across multiple indexes simplifies comparisons and operational consistency.
+- Benchmark tooling is essential; index choice is workload-dependent, not one-size-fits-all.
+- Operational visibility (job states, readiness, counts, hot-swap controls) matters as much as raw search speed.
+- Cross-language boundaries (C++/Go/Python/TS) are manageable when responsibilities are explicit and APIs are clear.
