@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
+type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 interface IndexingJob {
     id: string;
@@ -15,7 +15,8 @@ interface IndexingJob {
 }
 
 interface IndexingJobEvent {
-    kind: 'snapshot' | 'update' | 'error';
+    kind: 'snapshot' | 'update' | 'removed' | 'error';
+    job_id?: string;
     job?: IndexingJob;
     jobs?: IndexingJob[];
     message?: string;
@@ -46,15 +47,27 @@ const statusStyles: Record<JobStatus, { label: string; dot: string; text: string
         text: 'text-rose-700',
         card: 'border-rose-200/80 bg-rose-50/70',
     },
+    cancelled: {
+        label: 'Cancelled',
+        dot: 'bg-slate-400 shadow-[0_0_6px_rgba(100,116,139,0.35)]',
+        text: 'text-slate-600',
+        card: 'border-slate-200/80 bg-slate-100/70',
+    },
 };
 
 const formatCount = (value: number) => value.toLocaleString();
 
-export const ActiveIndexingJobsPanel = () => {
+interface ActiveIndexingJobsPanelProps {
+    onJobSettled?: () => void;
+}
+
+export const ActiveIndexingJobsPanel = ({ onJobSettled }: ActiveIndexingJobsPanelProps) => {
     const [jobs, setJobs] = useState<Record<string, IndexingJob>>({});
     const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed' | 'error'>('connecting');
     const [socketError, setSocketError] = useState<string | null>(null);
     const [isExpanded, setIsExpanded] = useState(true);
+    const [activeTab, setActiveTab] = useState<'active' | 'finished'>('active');
+    const [cancelingJobs, setCancelingJobs] = useState<Record<string, boolean>>({});
     const socketRef = useRef<WebSocket | null>(null);
     const reconnectTimerRef = useRef<number | null>(null);
     const connectRef = useRef<() => void>(() => {});
@@ -84,7 +97,28 @@ export const ActiveIndexingJobsPanel = () => {
                     setJobs(nextJobs);
                 } else if (payload.kind === 'update' && payload.job) {
                     const job = payload.job;
-                    setJobs((prev) => ({ ...prev, [job.id]: job }));
+                    let shouldNotifySettled = false;
+                    setJobs((prev) => {
+                        const previousStatus = prev[job.id]?.status;
+                        const isTerminal = job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled';
+                        if (isTerminal && previousStatus !== job.status) {
+                            shouldNotifySettled = true;
+                        }
+                        return { ...prev, [job.id]: job };
+                    });
+                    if (shouldNotifySettled) {
+                        onJobSettled?.();
+                    }
+                } else if (payload.kind === 'removed' && payload.job_id) {
+                    const removedJobID = payload.job_id;
+                    setJobs((prev) => {
+                        if (!prev[removedJobID]) {
+                            return prev;
+                        }
+                        const next = { ...prev };
+                        delete next[removedJobID];
+                        return next;
+                    });
                 } else if (payload.kind === 'error' && payload.message) {
                     setSocketError(payload.message);
                 }
@@ -106,7 +140,7 @@ export const ActiveIndexingJobsPanel = () => {
                 connectRef.current();
             }, 3000);
         };
-    }, []);
+    }, [onJobSettled]);
 
     useEffect(() => {
         connectRef.current = connect;
@@ -138,16 +172,21 @@ export const ActiveIndexingJobsPanel = () => {
     }, [jobList]);
 
     const finishedJobs = useMemo(() => {
-        return jobList.filter((job) => job.status === 'completed' || job.status === 'failed');
+        return jobList.filter(
+            (job) => (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') && job.total_points > 0
+        );
     }, [jobList]);
 
-    const renderJobs = (list: IndexingJob[], emptyMessage: string) => {
+    const visibleJobs = activeTab === 'active' ? ongoingJobs : finishedJobs;
+    const emptyMessage = activeTab === 'active' ? 'No active indexing jobs.' : 'No finished indexing jobs yet.';
+
+    const renderJobs = (list: IndexingJob[], listEmptyMessage: string) => {
         if (list.length === 0) {
-            return <p className="text-xs text-slate-500 font-mono">{emptyMessage}</p>;
+            return <p className="text-xs text-slate-500 font-mono">{listEmptyMessage}</p>;
         }
 
         return (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
                 {list.map((job) => {
                     const total = job.total_points || 0;
                     const indexed = job.indexed_points || 0;
@@ -163,11 +202,6 @@ export const ActiveIndexingJobsPanel = () => {
                             : 0;
                     const status = statusStyles[job.status];
                     const isActive = job.status === 'running' || job.status === 'queued';
-                    const cardPadding = 'p-2';
-                    const titleClass = 'text-xs font-semibold text-slate-900';
-                    const metaClass = 'text-[11px] text-slate-500 font-mono';
-                    const statusBadgeClass = 'text-[10px]';
-                    const progressTextClass = 'text-[11px] text-slate-600 font-mono';
                     const baseCardClass = isZeroPoints
                         ? 'border border-dashed border-slate-300/80 bg-slate-50/80'
                         : status.card;
@@ -175,39 +209,75 @@ export const ActiveIndexingJobsPanel = () => {
                         ? 'bg-slate-300'
                         : job.status === 'failed'
                           ? 'bg-gradient-to-r from-rose-500 to-rose-400'
+                          : job.status === 'cancelled'
+                            ? 'bg-gradient-to-r from-slate-500 to-slate-400'
                           : job.status === 'completed'
                             ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                             : 'bg-gradient-to-r from-cyan-500 to-blue-500';
+                    const isCanceling = !!cancelingJobs[job.id];
 
                     return (
                         <div
                             key={job.id}
-                            className={`border rounded-lg ${cardPadding} ${baseCardClass} transition-all duration-300 hover:border-slate-300 shadow-[0_8px_20px_rgba(15,23,42,0.08)]`}
+                            className={`border rounded-md p-2 ${baseCardClass} transition-all duration-300 hover:border-slate-300 shadow-[0_4px_12px_rgba(15,23,42,0.06)]`}
                         >
-                            <div className={`flex items-center justify-between ${isZeroPoints ? 'mb-2' : 'mb-2'}`}>
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={`w-2 h-2 rounded-full ${status.dot} ${isActive ? 'animate-pulse' : ''}`}
-                                    />
-                                    <div>
-                                        <p className={titleClass}>Semantic Geo Index</p>
-                                        <p className={metaClass}>Source: {job.source}</p>
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <span className={`h-2 w-2 rounded-full ${status.dot} ${isActive ? 'animate-pulse' : ''}`} />
+                                    <div className="min-w-0">
+                                        <p className="truncate text-xs font-semibold text-slate-900">Semantic Geo Index</p>
+                                        <p className="truncate text-[11px] text-slate-500 font-mono">Source: {job.source}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    {isActive && (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (isCanceling) {
+                                                    return;
+                                                }
+                                                setCancelingJobs((prev) => ({ ...prev, [job.id]: true }));
+                                                try {
+                                                    const response = await fetch('http://localhost:8080/api/v1/semantic-geo-search/index/cancel', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ job_id: job.id }),
+                                                    });
+                                                    if (!response.ok) {
+                                                        const payload = await response.json().catch(() => null);
+                                                        throw new Error(payload?.error || `Cancel failed (${response.status})`);
+                                                    }
+                                                } catch (err) {
+                                                    const message = err instanceof Error ? err.message : 'Failed to cancel job';
+                                                    setSocketError(message);
+                                                } finally {
+                                                    setCancelingJobs((prev) => {
+                                                        const next = { ...prev };
+                                                        delete next[job.id];
+                                                        return next;
+                                                    });
+                                                }
+                                            }}
+                                            disabled={isCanceling}
+                                            className="rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 font-mono"
+                                        >
+                                            {isCanceling ? 'Stopping...' : 'Stop'}
+                                        </button>
+                                    )}
                                     {isZeroPoints && (
-                                        <span className="text-[10px] text-nowrap font-semibold uppercase text-slate-500 border border-slate-300 bg-white px-2 py-0.5 rounded-full font-mono">
+                                        <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-500 font-mono">
                                             No points
                                         </span>
                                     )}
-                                    <span className={`${statusBadgeClass} uppercase tracking-wide font-semibold ${status.text} font-mono`}>
+                                    <span className={`text-[10px] uppercase tracking-wide font-semibold ${status.text} font-mono`}>
                                         {status.label}
                                     </span>
                                 </div>
                             </div>
 
-                            <div className={isZeroPoints ? 'mb-2' : 'mb-2'}>
-                                <div className={`flex items-center justify-between mb-1 ${progressTextClass}`}>
+                            <div className="mb-1.5">
+                                <div className="mb-1 flex items-center justify-between text-[11px] text-slate-600 font-mono">
                                     <span>
                                         {hasTotal
                                             ? `${formatCount(indexed)} / ${formatCount(total)} points`
@@ -217,7 +287,7 @@ export const ActiveIndexingJobsPanel = () => {
                                     </span>
                                     <span>{hasTotal ? `${progress}%` : isCounting ? '--' : '0%'}</span>
                                 </div>
-                                <div className="h-1.5 rounded-full bg-white border border-slate-200 overflow-hidden">
+                                <div className="h-1.5 overflow-hidden rounded-full border border-slate-200 bg-white">
                                     <div
                                         className={`h-full rounded-full ${isActive ? 'animate-pulse' : ''} ${barClass}`}
                                         style={{ width: `${progress}%` }}
@@ -225,13 +295,13 @@ export const ActiveIndexingJobsPanel = () => {
                                 </div>
                             </div>
 
-                            <div className={`flex flex-wrap items-center justify-between gap-2 ${metaClass}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
                                 <span>Started: {new Date(job.started_at).toLocaleString()}</span>
                                 {job.finished_at && <span>Finished: {new Date(job.finished_at).toLocaleString()}</span>}
                             </div>
 
-                            {job.error && (
-                                <div className="mt-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 font-mono">
+                            {job.error && job.status !== 'cancelled' && (
+                                <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 font-mono">
                                     {job.error}
                                 </div>
                             )}
@@ -243,21 +313,21 @@ export const ActiveIndexingJobsPanel = () => {
     };
 
     return (
-        <div className="border border-slate-200 rounded-xl p-4 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-            <div className="flex items-start justify-between gap-4">
-                <div>
+        <div className="border border-slate-200 rounded-xl p-3 bg-gradient-to-br from-white via-slate-50 to-slate-100 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-slate-900">Indexing Jobs</h3>
                     <p className="text-xs text-slate-500 font-mono">
                         {ongoingJobs.length} active · {finishedJobs.length} finished
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-2">
                     <span
-                        className={`w-2 h-2 rounded-full ${
+                        className={`h-2 w-2 rounded-full ${
                             connectionState === 'open' ? 'bg-emerald-500' : connectionState === 'connecting' ? 'bg-amber-400' : 'bg-rose-500'
                         }`}
                     />
-                    <span className="text-xs text-slate-500 capitalize font-mono">{connectionState}</span>
+                    <span className="text-xs capitalize text-slate-500 font-mono">{connectionState}</span>
                     <button
                         type="button"
                         onClick={() => setIsExpanded((prev) => !prev)}
@@ -269,36 +339,51 @@ export const ActiveIndexingJobsPanel = () => {
             </div>
 
             {socketError && (
-                <div className="mt-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 font-mono">
+                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 font-mono">
                     {socketError}
                 </div>
             )}
 
             {isExpanded ? (
-                <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide font-mono">Ongoing</h4>
-                            <span className="text-[11px] text-slate-500 font-mono">
-                                {ongoingJobs.length} active
-                            </span>
-                        </div>
-                        {renderJobs(ongoingJobs, 'No ongoing indexing jobs.')}
+                <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white/80 p-1 shadow-[0_4px_12px_rgba(15,23,42,0.04)]">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('active')}
+                            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold font-mono transition-colors ${
+                                activeTab === 'active'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                        >
+                            Active ({ongoingJobs.length})
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('finished')}
+                            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold font-mono transition-colors ${
+                                activeTab === 'finished'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                        >
+                            Finished ({finishedJobs.length})
+                        </button>
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide font-mono">Finished</h4>
-                            <span className="text-[11px] text-slate-500 font-mono">
-                                {finishedJobs.length} completed
-                            </span>
-                        </div>
-                        {renderJobs(finishedJobs, 'No finished indexing jobs yet.')}
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                        <span>Showing {activeTab === 'active' ? 'active' : 'finished'} jobs only</span>
+                        <span>{visibleJobs.length} total</span>
                     </div>
+
+                    <p className="text-[11px] text-slate-500 font-mono">
+                        Files/jobs with no points to index are automatically removed and not shown here.
+                    </p>
+
+                    {renderJobs(visibleJobs, emptyMessage)}
                 </div>
             ) : (
-                <p className="mt-3 text-xs text-slate-500 font-mono">
-                    Jobs hidden. Toggle to view details.
-                </p>
+                <p className="mt-3 text-xs text-slate-500 font-mono">Jobs hidden. Toggle to view details.</p>
             )}
         </div>
     );

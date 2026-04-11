@@ -166,6 +166,16 @@ func (store *PostgresGeoStore) GetAllEmbeddings() ([][]float32, error) {
 	return vectors, nil
 }
 
+func (store *PostgresGeoStore) Size() (int64, error) {
+	if store.db == nil {
+		return 0, fmt.Errorf("geo store database is nil")
+	}
+
+	var count int64
+	err := store.db.QueryRow(`SELECT COUNT(*) FROM places`).Scan(&count)
+	return count, err
+}
+
 func (store *PostgresGeoStore) SearchPlaces(embedding []float32, limit int64) ([]GeoSearchResult, error) {
 	if store.db == nil {
 		return nil, fmt.Errorf("geo store database is nil")

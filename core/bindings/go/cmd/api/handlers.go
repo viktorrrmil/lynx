@@ -14,6 +14,31 @@ import (
 
 // Helper functions to reduce code duplication
 
+func (api *API) getActiveSourceVectorCount() (int64, error) {
+	if api == nil {
+		return 0, fmt.Errorf("api is not initialized")
+	}
+
+	api.lock.RLock()
+	source := api.activeVectorSource
+	pgStore := api.pgStore
+	pgGeoStore := api.pgGeoStore
+	api.lock.RUnlock()
+
+	switch source {
+	case vectorSourceGeo:
+		if pgGeoStore == nil {
+			return 0, nil
+		}
+		return pgGeoStore.Size()
+	default:
+		if pgStore == nil {
+			return 0, nil
+		}
+		return pgStore.Size()
+	}
+}
+
 func (api *API) isReady(c *gin.Context) {
 	if api == nil || api.vectorStore == nil || api.pgStore == nil {
 		c.JSON(503, gin.H{
@@ -23,20 +48,52 @@ func (api *API) isReady(c *gin.Context) {
 		return
 	}
 
-	api.indexesReadyLock.RLock()
-	ready := api.indexesReady
-	api.indexesReadyLock.RUnlock()
+	vectorCount, err := api.getActiveSourceVectorCount()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to get active source vector count: " + err.Error()})
+		return
+	}
+	if vectorCount == 0 {
+		api.indexesReadyLock.Lock()
+		api.indexesReady = true
+		api.indexesReadyLock.Unlock()
+
+		c.JSON(200, gin.H{
+			"ready":   true,
+			"message": "No vectors loaded yet; indexes are ready for new data",
+			"status": gin.H{
+				"bf_ready":     true,
+				"ivf_ready":    true,
+				"ivfpq_ready":  true,
+				"hnsw_ready":   true,
+				"vector_count": vectorCount,
+			},
+		})
+		return
+	}
+
+	bfReady := api.bfIndex.IsInitialized()
+	ivfReady := api.ivfIndex.IsInitialized()
+	ivfPqReady := api.ivfPqIndex.IsInitialized()
+	hnswReady := api.hnswIndex.IsBuilt()
+	ready := bfReady && ivfReady && ivfPqReady && hnswReady
+
+	if ready {
+		api.indexesReadyLock.Lock()
+		api.indexesReady = true
+		api.indexesReadyLock.Unlock()
+	}
 
 	if !ready {
 		c.JSON(503, gin.H{
 			"ready":   false,
 			"message": "Indexes are still building in the background",
 			"status": gin.H{
-				"bf_ready":     api.bfIndex.IsInitialized(),
-				"ivf_ready":    api.ivfIndex.IsInitialized(),
-				"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
-				"hnsw_ready":   api.hnswIndex.IsBuilt(),
-				"vector_count": api.vectorStore.Size(),
+				"bf_ready":     bfReady,
+				"ivf_ready":    ivfReady,
+				"ivfpq_ready":  ivfPqReady,
+				"hnsw_ready":   hnswReady,
+				"vector_count": vectorCount,
 			},
 		})
 		return
@@ -46,11 +103,11 @@ func (api *API) isReady(c *gin.Context) {
 		"ready":   true,
 		"message": "All indexes are ready",
 		"status": gin.H{
-			"bf_ready":     api.bfIndex.IsInitialized(),
-			"ivf_ready":    api.ivfIndex.IsInitialized(),
-			"ivfpq_ready":  api.ivfPqIndex.IsInitialized(),
-			"hnsw_ready":   api.hnswIndex.IsBuilt(),
-			"vector_count": api.vectorStore.Size(),
+			"bf_ready":     bfReady,
+			"ivf_ready":    ivfReady,
+			"ivfpq_ready":  ivfPqReady,
+			"hnsw_ready":   hnswReady,
+			"vector_count": vectorCount,
 		},
 	})
 }
@@ -297,11 +354,26 @@ func (api *API) semanticGeoSearch(c *gin.Context) {
 func (api *API) getVectorStoreSource(c *gin.Context) {
 	api.lock.RLock()
 	source := api.activeVectorSource
-	vectorCount := int64(0)
-	if api.vectorStore != nil {
-		vectorCount = api.vectorStore.Size()
-	}
+	pgStore := api.pgStore
+	pgGeoStore := api.pgGeoStore
 	api.lock.RUnlock()
+
+	vectorCount := int64(0)
+	var err error
+	switch source {
+	case vectorSourceGeo:
+		if pgGeoStore != nil {
+			vectorCount, err = pgGeoStore.Size()
+		}
+	default:
+		if pgStore != nil {
+			vectorCount, err = pgStore.Size()
+		}
+	}
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to get vector count: " + err.Error()})
+		return
+	}
 
 	c.IndentedJSON(200, VectorStoreSourceResponse{
 		Source:      source,
@@ -807,20 +879,26 @@ func (api *API) estimateHNSWTrainingTime(c *gin.Context) {
 }
 
 func (api *API) getIndexStatus(c *gin.Context) {
+	vectorCount, err := api.getActiveSourceVectorCount()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to get active source vector count: " + err.Error()})
+		return
+	}
+
 	c.IndentedJSON(200, gin.H{
 		"bf": gin.H{
 			"initialized": api.bfIndex.IsInitialized(),
-			"vectorCount": api.bfIndex.Size(),
+			"vectorCount": vectorCount,
 		},
 		"ivf": gin.H{
 			"initialized": api.ivfIndex.IsInitialized(),
-			"vectorCount": api.ivfIndex.Size(),
+			"vectorCount": vectorCount,
 			"nlist":       api.ivfIndex.NList(),
 			"nprobe":      api.ivfIndex.NProbe(),
 		},
 		"ivfpq": gin.H{
 			"initialized":  api.ivfPqIndex.IsInitialized(),
-			"vectorCount":  api.ivfPqIndex.Size(),
+			"vectorCount":  vectorCount,
 			"nlist":        api.ivfPqIndex.NList(),
 			"nprobe":       api.ivfPqIndex.NProbe(),
 			"m":            api.ivfPqIndex.M(),
@@ -828,7 +906,7 @@ func (api *API) getIndexStatus(c *gin.Context) {
 		},
 		"hnsw": gin.H{
 			"initialized":    api.hnswIndex.IsInitialized(),
-			"vectorCount":    api.hnswIndex.Size(),
+			"vectorCount":    vectorCount,
 			"m":              api.hnswIndex.M(),
 			"efConstruction": api.hnswIndex.EfConstruction(),
 			"efSearch":       api.hnswIndex.EfSearch(),

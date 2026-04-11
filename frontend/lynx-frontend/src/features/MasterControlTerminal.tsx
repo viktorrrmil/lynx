@@ -62,7 +62,7 @@ const HotSwapSpinner = ({ active }: { active: boolean }) => (
     </span>
 );
 
-const IndexActivityPanel = () => {
+const IndexActivityPanel = ({ refreshSignal }: { refreshSignal: number }) => {
     const [status, setStatus] = useState<IsReadyResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -90,6 +90,10 @@ const IndexActivityPanel = () => {
         const interval = setInterval(fetchStatus, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        fetchStatus();
+    }, [refreshSignal]);
 
     const indexes = [
         { name: 'BruteForce', ready: status?.status?.bf_ready },
@@ -163,7 +167,7 @@ const IndexActivityPanel = () => {
     );
 };
 
-const DatabaseStatusPanel = () => {
+const DatabaseStatusPanel = ({ refreshSignal }: { refreshSignal: number }) => {
     const [data, setData] = useState<DatabaseStatusResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -240,6 +244,11 @@ const DatabaseStatusPanel = () => {
         fetchStatus();
         fetchVectorSource();
     }, []);
+
+    useEffect(() => {
+        fetchStatus();
+        fetchVectorSource();
+    }, [refreshSignal]);
 
     const swapTarget = vectorSource === 'geo' ? 'vector' : 'geo';
     const swapLabel = swapLoading ? 'Hot-swapping...' : `Swap to ${swapTarget.toUpperCase()}`;
@@ -374,17 +383,19 @@ const DatabaseStatusPanel = () => {
 };
 
 const MasterControlTerminal = () => {
+    const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 <div className="space-y-6 xl:col-span-6">
-                    <IndexActivityPanel />
-                    <ActiveIndexingJobsPanel />
+                    <IndexActivityPanel refreshSignal={jobsRefreshSignal} />
+                    <ActiveIndexingJobsPanel onJobSettled={() => setJobsRefreshSignal((prev) => prev + 1)} />
                 </div>
                 <div className="space-y-6 xl:col-span-6">
                     <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
                         <div className="2xl:col-span-2">
-                            <DatabaseStatusPanel />
+                            <DatabaseStatusPanel refreshSignal={jobsRefreshSignal} />
                         </div>
                         <div className="2xl:col-span-2">
                             <IndexStatusPanel isExpanded={true} variant="terminal" />

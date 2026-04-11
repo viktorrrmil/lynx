@@ -67,6 +67,7 @@ func setupRouter(api *API) *gin.Engine {
 	// Semantic Geo Search
 	router.POST("/api/v1/semantic-geo-search/index", api.semanticGeoSearchIndex)
 	router.GET("/api/v1/semantic-geo-search/index", api.semanticGeoSearchIndex)
+	router.POST("/api/v1/semantic-geo-search/index/cancel", api.semanticGeoSearchCancelJob)
 	router.GET("/api/v1/geo/indexed-areas", api.getIndexedAreas)
 
 	return router

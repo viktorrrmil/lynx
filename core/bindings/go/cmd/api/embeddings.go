@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,6 +52,10 @@ func getEmbeddings(text string) ([]float32, error) {
 }
 
 func getBatchEmbeddings(textBatch []string) ([][]float32, error) {
+	return getBatchEmbeddingsWithContext(context.Background(), textBatch)
+}
+
+func getBatchEmbeddingsWithContext(ctx context.Context, textBatch []string) ([][]float32, error) {
 	if embeddingServiceURL == "" {
 		return nil, fmt.Errorf("EMBEDDING_SERVICE_URL is not set")
 	}
@@ -64,10 +69,18 @@ func getBatchEmbeddings(textBatch []string) ([][]float32, error) {
 		return nil, err
 	}
 
-	resp, err := http.Post(
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
 		embeddingServiceURL+"/embed_text_batch",
-		"application/json",
-		bytes.NewBuffer(jsonData))
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
 		return nil, err

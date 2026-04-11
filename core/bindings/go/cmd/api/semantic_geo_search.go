@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"lynx/storage"
 	"net/http"
@@ -18,6 +20,38 @@ import (
 )
 
 var s3RegionPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+type CancelIndexingJobRequest struct {
+	JobID string `json:"job_id"`
+}
+
+func (api *API) semanticGeoSearchCancelJob(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "method not allowed"})
+		return
+	}
+	if api == nil || api.jobHub == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "job hub is not initialized"})
+		return
+	}
+
+	var request CancelIndexingJobRequest
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(request.JobID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "job_id is required"})
+		return
+	}
+
+	if !api.jobHub.cancelJob(request.JobID) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "job not found or not cancellable"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "cancelled", "job_id": request.JobID})
+}
 
 func (api *API) semanticGeoSearchIndex(c *gin.Context) {
 	if websocket.IsWebSocketUpgrade(c.Request) {
@@ -165,13 +199,50 @@ func validateSemanticGeoIndexRequest(request *SemanticGeoIndexRequest) error {
 
 func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID string) (SemanticGeoIndexResult, error) {
 	result := SemanticGeoIndexResult{Items: []SemanticGeoIndexItem{}}
+	jobCtx := context.Background()
+	totalAvailable := int64(0)
+	processed := 0
+	if api != nil && api.jobHub != nil && jobID != "" {
+		jobCtx = api.jobHub.jobContext(jobID)
+	}
+
+	persistIndexedAreaProgress := func() error {
+		if api == nil || api.pgGeoStore == nil || totalAvailable <= 0 || processed <= 0 {
+			return nil
+		}
+		return api.pgGeoStore.UpsertIndexedArea(storage.GeoIndexedArea{
+			Source:        request.S3Path,
+			BBoxMinX:      request.BBoxMinX,
+			BBoxMaxX:      request.BBoxMaxX,
+			BBoxMinY:      request.BBoxMinY,
+			BBoxMaxY:      request.BBoxMaxY,
+			TotalPoints:   totalAvailable,
+			IndexedPoints: int64(processed),
+			IndexedAt:     time.Now().UTC(),
+		})
+	}
+
 	failJob := func(err error) (SemanticGeoIndexResult, error) {
 		if api != nil && api.jobHub != nil && jobID != "" {
-			api.jobHub.updateJob(jobID, func(job *IndexingJob) {
-				job.Status = "failed"
-				job.Error = err.Error()
-				job.FinishedAt = time.Now().UTC().Format(time.RFC3339)
-			})
+			if errors.Is(err, context.Canceled) {
+				if persistErr := persistIndexedAreaProgress(); persistErr != nil {
+					return result, fmt.Errorf("failed to persist partial indexed area on cancel: %w", persistErr)
+				}
+				api.jobHub.updateJob(jobID, func(job *IndexingJob) {
+					if job.Status == "cancelled" {
+						return
+					}
+					job.Status = "cancelled"
+					job.Error = "Cancelled by user"
+					job.FinishedAt = time.Now().UTC().Format(time.RFC3339)
+				})
+			} else {
+				api.jobHub.updateJob(jobID, func(job *IndexingJob) {
+					job.Status = "failed"
+					job.Error = err.Error()
+					job.FinishedAt = time.Now().UTC().Format(time.RFC3339)
+				})
+			}
 		}
 		return result, err
 	}
@@ -182,8 +253,15 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 
 	if api.jobHub != nil && jobID != "" {
 		api.jobHub.updateJob(jobID, func(job *IndexingJob) {
+			if job.Status == "cancelled" {
+				return
+			}
 			job.Status = "running"
 		})
+	}
+
+	if err := jobCtx.Err(); err != nil {
+		return failJob(err)
 	}
 
 	db, err := sql.Open("duckdb", "")
@@ -196,7 +274,7 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		return failJob(fmt.Errorf("failed to initialize DuckDB S3 access: %w", err))
 	}
 
-	totalAvailable, err := countSemanticGeoItemsTotal(db, request)
+	totalAvailable, err = countSemanticGeoItemsTotal(jobCtx, db, request)
 	if err != nil {
 		return failJob(err)
 	}
@@ -222,10 +300,7 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		}
 
 		if api.jobHub != nil && jobID != "" {
-			api.jobHub.updateJob(jobID, func(job *IndexingJob) {
-				job.Status = "completed"
-				job.FinishedAt = time.Now().UTC().Format(time.RFC3339)
-			})
+			api.jobHub.removeJob(jobID)
 		}
 		return result, nil
 	}
@@ -261,7 +336,7 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		args = append(args, *request.Count)
 	}
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(jobCtx, query, args...)
 	if err != nil {
 		return failJob(fmt.Errorf("failed to query DuckDB: %w", err))
 	}
@@ -271,14 +346,16 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 	batchRows := make([]semanticGeoRow, 0, batchSize)
 	batchItems := make([]SemanticGeoIndexItem, 0, batchSize)
 	batchTexts := make([]string, 0, batchSize)
-	processed := 0
 
 	processBatch := func() error {
+		if err := jobCtx.Err(); err != nil {
+			return err
+		}
 		if len(batchTexts) == 0 {
 			return nil
 		}
 
-		embeddings, err := getBatchEmbeddings(batchTexts)
+		embeddings, err := getBatchEmbeddingsWithContext(jobCtx, batchTexts)
 		if err != nil {
 			return err
 		}
@@ -308,6 +385,9 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 			}
 		}
 
+		if err := jobCtx.Err(); err != nil {
+			return err
+		}
 		if err := api.pgGeoStore.AddPlaces(places); err != nil {
 			return err
 		}
@@ -354,6 +434,10 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 		return failJob(fmt.Errorf("failed to index batch: %w", err))
 	}
 
+	if err := jobCtx.Err(); err != nil {
+		return failJob(err)
+	}
+
 	if err := api.pgGeoStore.UpsertIndexedArea(storage.GeoIndexedArea{
 		Source:        request.S3Path,
 		BBoxMinX:      request.BBoxMinX,
@@ -378,7 +462,7 @@ func (api *API) runSemanticGeoIndexJob(request SemanticGeoIndexRequest, jobID st
 	return result, nil
 }
 
-func countSemanticGeoItemsTotal(db *sql.DB, request SemanticGeoIndexRequest) (int64, error) {
+func countSemanticGeoItemsTotal(ctx context.Context, db *sql.DB, request SemanticGeoIndexRequest) (int64, error) {
 	query := `
 		SELECT COUNT(*)
 		FROM read_parquet(?)
@@ -394,7 +478,7 @@ func countSemanticGeoItemsTotal(db *sql.DB, request SemanticGeoIndexRequest) (in
 	}
 
 	var count int64
-	if err := db.QueryRow(query, args...).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, query, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("failed to count DuckDB rows: %w", err)
 	}
 
