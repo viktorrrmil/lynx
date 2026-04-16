@@ -5,7 +5,7 @@ A vector search engine built from scratch in C++ with Go bindings, Python-based 
 Lynx is designed around a shared index architecture: vectors live in a central store, and multiple index types (Brute Force, IVF, IVF-PQ, HNSW) reference the same data for different accuracy/latency tradeoffs.
 
 ![search_screenshot](search_screenshot.png)
-
+![master_terminal_screenshot.png](master_terminal_screenshot.png)
 ## Overview
 
 Lynx is an applied systems project focused on ANN indexing tradeoffs, index orchestration, and measurable performance. It includes:
